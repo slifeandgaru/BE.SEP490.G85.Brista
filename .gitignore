@@ -1,0 +1,6 @@
+node_modules
+.env
+# client_secret_57639966398-qc7rq3v6htt4ok34riklra3uu8qnopnb.apps.googleusercontent.com.json
+# client_secret_57639966398-c41cg7utbbfohbstl2mjneus059mpbsr.apps.googleusercontent.com.json
+package-lock.json
+./public/uploads
