@@ -23,14 +23,17 @@ exports.upload = multer({ storage: storage },{
 
 exports.adminCreateCategory = async (req, res) => {
     try {
-        if(req.file){
-            req.body.thump = req.file.path;
+        console.log("file recive: ", req.file)
+        if (req.file) {
+            req.body.thump = req.file.path; // Lấy link ảnh từ Cloudinary
         }
         const newCategory = await Category.create(req.body);
-        res.status(200).json({newCategory, message: 'create category success'});
+        res.status(200).json({ newCategory, message: 'Create category success' });
     } catch (error) {
-        if(error.code === 11000) return res.status(400).json({message: 'category already in use'});
-        res.status(500).json({message: 'server error', error});
+        if (error.code === 11000) {
+            return res.status(400).json({ message: 'Category already in use' });
+        }
+        res.status(500).json({ message: 'Server error', error });
     }
 }
 
