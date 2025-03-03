@@ -15,7 +15,7 @@ exports.createNewUser = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
     try {
-        console.log(18, req.body);
+        // console.log(18, req.body);
         const user = await checkEmailAndPassword(req, res);
         if(user.error) return res.status(400).json({message: user.error});
 
@@ -35,24 +35,24 @@ exports.getMyInfo = async (req, res) => {
     }
 }
 
-exports.loginToShop = async (req, res) => {
-    try {
-        console.log(40, req.body);
-        const user = await checkEmailAndPassword(req, res);
-        if(user.error) return res.status(400).json({message: user.error});
+// exports.loginToShop = async (req, res) => {
+//     try {
+//         // console.log(40, req.body);
+//         const user = await checkEmailAndPassword(req, res);
+//         if(user.error) return res.status(400).json({message: user.error});
 
-        if(!user.user.shop) return res.status(400).json({message: `you don't have a shop yet, please create a shop first`});
+//         if(!user.user.shop) return res.status(400).json({message: `you don't have a shop yet, please create a shop first`});
         
-        const token = user.user.createToken();
-        res.status(200).json({message: 'login success', token});
-    } catch (error) {
-        res.status(500).json({message: 'server error', error});
-    }
-}
+//         const token = user.user.createToken();
+//         res.status(200).json({message: 'login success', token});
+//     } catch (error) {
+//         res.status(500).json({message: 'server error', error});
+//     }
+// }
 
 exports.adminLogin = async (req, res) => {
     try {
-        console.log(55, req.body);
+        // console.log(55, req.body);
         const user = await checkEmailAndPassword(req, res);
         if(user.error) return res.status(400).json({message: user.error});
 
