@@ -1,4 +1,5 @@
-const Warehouse = require('../models/warehouse');
+const mongoose = require('mongoose');
+const { Warehouse } = require('../models/warehouse');
 
 // Lấy danh sách kho với phân trang
 exports.getAllWarehouses = async (req, res) => {
@@ -8,7 +9,8 @@ exports.getAllWarehouses = async (req, res) => {
         limit = parseInt(limit) || 10;
         const skip = (page - 1) * limit;
 
-        const warehouses = await Warehouse.find().skip(skip).limit(limit);
+        const warehouses = await Warehouse.find().skip(skip).limit(limit)
+        .populate('listIngredient.ingredientId');
         const total = await Warehouse.countDocuments();
 
         res.status(200).json({
@@ -86,31 +88,50 @@ exports.addIngredientToWarehouse = async (req, res) => {
         const { warehouseId } = req.params;
         const { ingredientId, quantity } = req.body;
 
-        if (!ingredientId || !quantity || quantity <= 0) {
-            return res.status(400).json({ message: "ingredientId và quantity phải hợp lệ!" });
-        }
-
+        // Kiểm tra xem warehouse có tồn tại không
         const warehouse = await Warehouse.findById(warehouseId);
         if (!warehouse) {
-            return res.status(404).json({ message: "Warehouse không tồn tại!" });
+            return res.status(404).json({ message: 'Warehouse not found' });
         }
 
-        // Kiểm tra xem ingredientId đã tồn tại trong listIngredient chưa
-        const ingredientIndex = warehouse.listIngredient.findIndex(item => item.ingredientId === ingredientId);
+        // Chuyển ingredientId về ObjectId
+        const ingredientObjectId = new mongoose.Types.ObjectId(ingredientId);
 
-        if (ingredientIndex !== -1) {
-            // Nếu tồn tại, tăng số lượng
-            warehouse.listIngredient[ingredientIndex].quantity += quantity;
+        // Kiểm tra xem ingredient có trong listIngredient chưa
+        const existingIngredient = warehouse.listIngredient.find(item =>
+            item.ingredientId.equals(ingredientObjectId)
+        );
+
+        if (existingIngredient) {
+            existingIngredient.quantity += quantity;
         } else {
-            // Nếu chưa tồn tại, thêm mới
-            warehouse.listIngredient.push({ ingredientId, quantity });
+            warehouse.listIngredient.push({ ingredientId: ingredientObjectId, quantity });
         }
 
+        // Lưu lại warehouse
         await warehouse.save();
-        res.status(200).json({ message: "Cập nhật thành công!", warehouse });
 
+        res.status(200).json({ message: 'Ingredient added successfully', warehouse });
     } catch (error) {
-        res.status(500).json({ message: "Server error", error });
+        console.error('Error:', error); // Ghi log lỗi chi tiết ra console
+
+        // Kiểm tra lỗi của MongoDB
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({
+                message: 'Validation Error',
+                errors: error.errors
+            });
+        } else if (error.name === 'MongoServerError' && error.code === 11000) {
+            return res.status(400).json({
+                message: 'Duplicate Key Error',
+                keyValue: error.keyValue
+            });
+        }
+
+        res.status(500).json({
+            message: 'Server Error',
+            error: error.message || error
+        });
     }
 };
 

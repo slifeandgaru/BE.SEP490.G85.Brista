@@ -14,4 +14,5 @@ const IngredientSchema = mongoose.Schema({
 }, { collection: 'ingredients', timestamps: true });
 
 const Ingredient = mongoose.model('ingredients', IngredientSchema);
-module.exports = Ingredient;
+
+module.exports.Ingredient = Ingredient;
