@@ -12,7 +12,7 @@ const ProductSchema = new mongoose.Schema({
     ],
     price: { type: Number, required: true },
     totalStorage: { type: Number, required: true },
-    expiration: { type: Date, required: true },
+    expiration: Date,
     feedback: [
         {
             userId: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
@@ -21,7 +21,7 @@ const ProductSchema = new mongoose.Schema({
         }
     ],
     coupon: [{
-        couponId: { type: String }
+        couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'coupons' }
     }]
 }, { collection: 'products', timestamps: true });
 

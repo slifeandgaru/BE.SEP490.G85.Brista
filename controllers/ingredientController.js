@@ -1,4 +1,4 @@
-const { Ingredient } = require('../models/Ingredient');
+const { Ingredient } = require('../models/ingredient');
 
 // Get all ingredients with pagination
 exports.getAllIngredients = async (req, res) => {
