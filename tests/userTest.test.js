@@ -2,7 +2,8 @@ const chai = require("chai");
 const sinon = require("sinon");
 const { expect } = chai;
 const { User } = require("../models/user");
-const { getAllUser, createNewUser } = require("../controllers/userController");
+const { getAllUser, createNewUser, getOneUser } = require("../controllers/userController");
+
 
 describe("User Controller", () => {
     it("Test đơn giản", () => {
@@ -141,5 +142,57 @@ describe("User Controller", () => {
 
         sinon.assert.calledWith(res.status, 500);
         sinon.assert.calledWithMatch(res.json, { message: "server error" });
+    });
+});
+
+// get oneuser
+describe("User Controller - getOneUser", () => {
+    let req, res, stub;
+
+    beforeEach(() => {
+        req = { params: { userId: "123456789" } };
+        res = { status: sinon.stub().returnsThis(), json: sinon.stub() };
+    });
+
+    afterEach(() => {
+        if (stub) stub.restore();
+    });
+
+    it(" Nên trả về user nếu tìm thấy (200)", async () => {
+        const mockUser = { _id: "123456789", name: "John Doe", email: "john@example.com" };
+        stub = sinon.stub(User, "findOne").resolves(mockUser);
+
+        await getOneUser(req, res);
+
+        expect(res.status.calledWith(200)).to.be.true;
+        expect(res.json.calledWith({ user: mockUser })).to.be.true;
+    });
+
+    it(" Nên trả về lỗi 400 nếu user không tồn tại", async () => {
+        stub = sinon.stub(User, "findOne").resolves(null);
+
+        await getOneUser(req, res);
+
+        expect(res.status.calledWith(400)).to.be.true;
+        expect(res.json.calledWithMatch({ message: "user not exist" })).to.be.true;
+    });
+
+    it(" Nên trả về lỗi 400 nếu userId không hợp lệ", async () => {
+        req.params.userId = "invalid_id";
+        stub = sinon.stub(User, "findOne").throws(new Error("Invalid user ID"));
+
+        await getOneUser(req, res);
+
+        expect(res.status.calledWith(400)).to.be.true;
+        expect(res.json.calledWithMatch({ message: "Invalid user ID" })).to.be.true;
+    });
+
+    it(" Nên trả về lỗi 500 nếu có lỗi server", async () => {
+        stub = sinon.stub(User, "findOne").throws(new Error("Server error"));
+
+        await getOneUser(req, res);
+
+        expect(res.status.calledWith(500)).to.be.true;
+        expect(res.json.calledWithMatch({ message: "server error" })).to.be.true;
     });
 });
