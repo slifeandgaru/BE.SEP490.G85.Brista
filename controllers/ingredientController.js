@@ -1,4 +1,4 @@
-const { Ingredient } = require('../models/ingredient');
+const Ingredient = require('../models/ingredient');
 
 // Get all ingredients with pagination
 exports.getAllIngredients = async (req, res) => {
@@ -38,17 +38,42 @@ exports.getIngredientById = async (req, res) => {
 // Create a new ingredient
 exports.createIngredient = async (req, res) => {
     try {
-        const { batchCode } = req.body;
+        console.log("File received:", req.file);
+
+        // Lấy dữ liệu từ request body
+        const { ingredientName, unit, ingredientCode, expiration } = req.body;
+        const conversionRate = Number(req.body.conversionRate) || 1; // Ép kiểu số
+
+        // Tạo batchCode từ ingredientCode + ngày tháng hiện tại
+        const currentDate = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+        const batchCode = `${ingredientCode}-${currentDate}`;
+
+        // Kiểm tra xem batchCode đã tồn tại chưa
         const existingIngredient = await Ingredient.findOne({ batchCode });
         if (existingIngredient) {
-            return res.status(400).json({ message: 'Batch code already exists' });
+            return res.status(400).json({ message: "Batch code already exists" });
         }
-        
-        const newIngredient = new Ingredient(req.body);
+
+        // Lưu đường dẫn ảnh (nếu có)
+        const thump = req.file?.path || "https://cdn-icons-png.flaticon.com/512/1261/1261163.png";
+
+        // Tạo mới nguyên liệu
+        const newIngredient = new Ingredient({
+            ingredientName,
+            unit,
+            ingredientCode,
+            batchCode,
+            expiration,
+            conversionRate,
+            thump,
+        });
+
         await newIngredient.save();
-        res.status(201).json({ message: 'Ingredient created successfully', ingredient: newIngredient });
+
+        res.status(201).json({ message: "Ingredient created successfully", ingredient: newIngredient });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error("Error creating ingredient:", error);
+        res.status(500).json({ message: "Server error", error });
     }
 };
 

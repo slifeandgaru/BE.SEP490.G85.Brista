@@ -4,7 +4,8 @@ const {
     getWarehouseById, 
     updateWarehouse, 
     deleteWarehouse,
-    addIngredientToWarehouse
+    addIngredientToWarehouse,
+    removeIngredientFromWarehouse
 } = require("../controllers/warehouseController");
 const { checkLogin, checkAdmin } = require('../middlewares/auth');
 
@@ -15,7 +16,7 @@ router.get('/get-warehouse-by-id/:id', getWarehouseById);
 router.post('/create-warehouse', checkLogin, checkAdmin, createWarehouse);
 router.patch('/update-warehouse/:id', checkLogin, checkAdmin, updateWarehouse);
 router.delete('/delete-warehouse/:id', checkLogin, checkAdmin, deleteWarehouse);
-router.post('/add-ingredient/:warehouseId', checkLogin, checkAdmin, addIngredientToWarehouse);
-
+router.post('/add-ingredient', checkLogin, checkAdmin, addIngredientToWarehouse);
+router.delete('/delete-ingredient-in-warehouse', checkLogin, checkAdmin, removeIngredientFromWarehouse);
 
 module.exports = router;
