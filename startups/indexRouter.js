@@ -10,6 +10,7 @@ const warehouseRoute = require("../routes/warehouseRoute")
 const couponRoute = require("../routes/couponRoute")
 const customerRoute = require("../routes/customerRoute")
 const productRoute = require("../routes/productRoute")
+const vatRoute = require("../routes/vatRoute")
 
 router.use('/auth', authRoute);
 
@@ -21,5 +22,6 @@ router.use('/warehouse', warehouseRoute);
 router.use('/coupon', couponRoute);
 router.use('/customer', customerRoute);
 router.use('/product', productRoute);
+router.use('/vat', vatRoute);
 
 module.exports = router;
