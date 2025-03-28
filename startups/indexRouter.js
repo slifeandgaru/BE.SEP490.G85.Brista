@@ -11,6 +11,8 @@ const couponRoute = require("../routes/couponRoute")
 const customerRoute = require("../routes/customerRoute")
 const productRoute = require("../routes/productRoute")
 const vatRoute = require("../routes/vatRoute")
+const voucherRoute = require("../routes/voucherRoute")
+const orderRoute = require("../routes/orderRoute")
 
 router.use('/auth', authRoute);
 
@@ -23,5 +25,7 @@ router.use('/coupon', couponRoute);
 router.use('/customer', customerRoute);
 router.use('/product', productRoute);
 router.use('/vat', vatRoute);
+router.use('/voucher', voucherRoute);
+router.use('/order', orderRoute);
 
 module.exports = router;

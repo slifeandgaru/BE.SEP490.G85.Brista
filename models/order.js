@@ -8,10 +8,13 @@ const OrderSchema = mongoose.Schema({
         quantity: Number,
     }],
     total: Number,
-    phone: {type: String},
+    phone: String,
     address: String,
     table: Number,
     status: {type: String, enum: ['paid', 'unpaid', 'doing', 'done', 'served'], default: 'unpaid'},
+    orderDate: Date,
+    vatId: {type: mongoose.Schema.Types.ObjectId, ref: 'VATs'},
+    voucherId: {type: mongoose.Schema.Types.ObjectId, ref: 'Vouchers'}
 },{collection: 'orders', timestamps: true});
 
 const Order = mongoose.model('orders', OrderSchema);
