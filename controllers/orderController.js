@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Order = require("../models/order");
 const Product = require("../models/product");
 
@@ -25,11 +26,11 @@ exports.getOrderById = async (req, res) => {
 // Tạo đơn hàng mới
 exports.createOrder = async (req, res) => {
     try {
-        const { userId, userName, product } = req.body;
+        const { userId, customerId, product } = req.body;
 
         // 🔍 Tìm đơn hàng của khách hàng có status là "unpaid"
         let existingOrder = await Order.findOne({
-            $or: [{ userId }, { userName }],
+            $or: [{ userId }, {customerId}],
             status: "unpaid"
         });
 
@@ -53,7 +54,7 @@ exports.createOrder = async (req, res) => {
             // ❌ Nếu chưa có đơn hàng, tạo mới
             existingOrder = new Order({
                 userId,
-                userName,
+                customerId,
                 product,
                 status: "unpaid",
                 orderDate: new Date()
@@ -98,5 +99,25 @@ exports.deleteOrder = async (req, res) => {
         res.status(200).json({ message: "Order deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+};
+
+//Lấy order bằng customer id
+exports.getOrdersByCustomerId = async (req, res) => {
+    try {
+        // Chuyển customerId từ string -> ObjectId
+        const customerId = req.params.id;
+        console.log(customerId)
+
+        // Tìm tất cả đơn hàng của khách hàng
+        const orders = await Order.find({ customerId })
+            .populate("userId vatId voucherId product.productId");
+
+        if (!orders.length) return res.status(404).json({ message: "No orders found for this customer" });
+
+        res.status(200).json(orders);
+    } catch (error) {
+        console.error("Error fetching orders:", error);
+        res.status(500).json({ message: "Server error" });
     }
 };
