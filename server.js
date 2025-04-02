@@ -8,6 +8,11 @@ const path = require('path');
 const app = express();
 const router = require("./startups/indexRouter")
 
+// Import routes
+const ingredientRoutes = require("./routes/ingredientRoutes");
+app.use("/api/ingredients", ingredientRoutes);
+
+
 // app.use(session({
 //     secret: 'keyboard cat',
 //     resave: false,
