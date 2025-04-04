@@ -41,8 +41,14 @@ exports.createIngredient = async (req, res) => {
         console.log("File received:", req.file);
 
         // Lấy dữ liệu từ request body
-        const { ingredientName, unit, ingredientCode, expiration } = req.body;
-        const conversionRate = Number(req.body.conversionRate) || 1; // Ép kiểu số
+        const { ingredientName, baseUnit, ingredientCode, expiration, conversionRate } = req.body;
+        
+        // Kiểm tra nếu rate là mảng hợp lệ
+        // const validRate = Array.isArray(conversionRate) && conversionRate.every(r => r.unit && r.conversionRate);
+
+        // if (!validRate) {
+        //     return res.status(400).json({ message: "Invalid rate format" });
+        // }
 
         // Tạo batchCode từ ingredientCode + ngày tháng hiện tại
         const currentDate = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -54,13 +60,17 @@ exports.createIngredient = async (req, res) => {
             return res.status(400).json({ message: "Batch code already exists" });
         }
 
+        // if (conversionRate) {
+        //     conversionRate = JSON.parse(conversionRate);
+        // }
+
         // Lưu đường dẫn ảnh (nếu có)
-        const thump = req.file?.path || "https://cdn-icons-png.flaticon.com/512/1261/1261163.png";
+        let thump = req.file?.path || "https://cdn-icons-png.flaticon.com/512/1261/1261163.png";
 
         // Tạo mới nguyên liệu
         const newIngredient = new Ingredient({
             ingredientName,
-            unit,
+            baseUnit,
             ingredientCode,
             batchCode,
             expiration,
@@ -102,3 +112,29 @@ exports.deleteIngredient = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+// Add a new unit conversion to an ingredient
+exports.addUnitToIngredient = async (req, res) => {
+    try {
+        const { unit, value } = req.body;
+
+        if (!unit || !value) {
+            return res.status(400).json({ message: 'unit and value are required' });
+        }
+
+        const updatedIngredient = await Ingredient.findByIdAndUpdate(
+            req.params.id,
+            { $push: { rate: { unit, value } } },
+            { new: true }
+        );
+
+        if (!updatedIngredient) {
+            return res.status(404).json({ message: 'Ingredient not found' });
+        }
+
+        res.status(200).json({ message: 'Unit added successfully', ingredient: updatedIngredient });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+

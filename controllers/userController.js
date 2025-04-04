@@ -13,12 +13,62 @@ exports.getAllUser = async (req, res) => {
 
 exports.createNewUser = async (req, res) => {
     try {
-        const newUser = await User.create({...req.body})
-        res.status(200).json({newUser});
+        const { phone, email } = req.body;
+
+        // Kiểm tra xem phone đã tồn tại chưa
+        const existingPhone = await User.findOne({ phone });
+        if (existingPhone) {
+            return res.status(400).json({ message: "Số điện thoại đã tồn tại" });
+        }
+
+        // Nếu email có trong request, kiểm tra xem email đã tồn tại chưa
+        if (email) {
+            const existingEmail = await User.findOne({ email });
+            if (existingEmail) {
+                return res.status(400).json({ message: "Email đã tồn tại" });
+            }
+        }
+
+        // Nếu không có trùng, tạo user mới
+        const newUser = await User.create(req.body);
+
+        res.status(201).json({ newUser });
     } catch (error) {
-        res.status(500).json({message: 'server error', error}); 
+        console.error("Error creating user:", error);
+        res.status(500).json({ message: "Server error", error });
     }
-}
+};
+
+
+exports.UserOrder = async (req, res) => {
+    try {
+        const { phone, email } = req.body;
+        console.log('avd')
+        // Kiểm tra xem phone đã tồn tại chưa
+        const existingPhone = await User.findOne({ phone });
+        if (existingPhone) {
+            return res.status(200).json({ message: " Người dùng cũ " });
+        }
+
+        // Nếu email có trong request, kiểm tra xem email đã tồn tại chưa
+        // if (email) {
+        //     const existingEmail = await User.findOne({ email });
+        //     if (existingEmail) {
+        //         return res.status(400).json({ message: "Email đã tồn tại" });
+        //     }
+        // }
+
+        // Nếu không có trùng, tạo user mới
+        const newUser = await User.create(req.body);
+
+        res.status(201).json({ newUser });
+    } catch (error) {
+        console.error("Error creating user:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+};
+
+
 
 exports.getOneUser = async (req, res) => {
     try {

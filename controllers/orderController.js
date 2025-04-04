@@ -12,20 +12,26 @@ exports.getOrders = async (req, res) => {
 };
 
 // Lấy đơn hàng theo ID
-exports.getOrderById = async (req, res) => {
+exports.getOrderByPhone = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.id).populate("userId vatId voucherId product.productId");
-        if (!order) return res.status(404).json({ message: "Order not found" });
-        res.status(200).json(order);
+        const phone = req.params.phone;
+        const orders = await Order.find({ phone }).populate("userId vatId voucherId product.productId");
+
+        if (orders.length === 0) {
+            return res.status(404).json({ message: "Không tìm thấy đơn hàng nào với số điện thoại này." });
+        }
+
+        res.status(200).json(orders);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error("Error finding order by phone:", error);
+        res.status(500).json({ message: "Server error", error });
     }
 };
 
 // Tạo đơn hàng mới
 exports.createOrder = async (req, res) => {
     try {
-        const { userId, userName, product } = req.body;
+        const { userId, userName, product, phone } = req.body;
 
         // 🔍 Tìm đơn hàng của khách hàng có status là "unpaid"
         let existingOrder = await Order.findOne({
@@ -52,6 +58,7 @@ exports.createOrder = async (req, res) => {
         } else {
             // ❌ Nếu chưa có đơn hàng, tạo mới
             existingOrder = new Order({
+                phone,
                 userId,
                 userName,
                 product,

@@ -96,7 +96,7 @@ exports.deleteWarehouse = async (req, res) => {
 // Thêm nguyên liệu vào trong kho
 exports.addIngredientToWarehouse = async (req, res) => {
     try {
-        const { warehouseId, ingredientId, quantity } = req.body;
+        const { warehouseId, ingredientId, quantity, unit } = req.body;
 
         // Kiểm tra ingredient có tồn tại không
         const ingredient = await Ingredient.findById(ingredientId);
@@ -109,11 +109,20 @@ exports.addIngredientToWarehouse = async (req, res) => {
         if (!warehouse) {
             return res.status(404).json({ message: "Warehouse not found" });
         }
-        
-        // Kiểm tra conversionRate
-        const conversionRate = ingredient.conversionRate ?? 1; // Nếu null hoặc undefined thì mặc định là 1
 
-        // Tính tổng số lượng theo đơn vị gốc
+        let selectedUnit = unit || ingredient.baseUnit; // Nếu không có unit, lấy baseUnit
+        let conversionRate = 1; // Mặc định là 1 nếu dùng baseUnit
+
+        if (unit) {
+            // Nếu có đơn vị khác baseUnit, tìm conversionRate tương ứng
+            const conversion = ingredient.conversionRate.find(c => c.unit === unit);
+            if (!conversion) {
+                return res.status(400).json({ message: `Unit ${unit} is not supported for this ingredient` });
+            }
+            conversionRate = conversion.rate;
+        }
+
+        // Tính tổng số lượng theo đơn vị gốc (baseUnit)
         const totalQuantity = quantity * conversionRate;
 
         // Kiểm tra xem nguyên liệu đã có trong kho chưa
@@ -129,7 +138,8 @@ exports.addIngredientToWarehouse = async (req, res) => {
             warehouse.listIngredient.push({
                 ingredientId,
                 quantity: totalQuantity,
-                conversionRate, // Thêm conversionRate vào object
+                selectedUnit,
+                conversionRate,
             });
         }
 
@@ -142,6 +152,7 @@ exports.addIngredientToWarehouse = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 };
+
 
 exports.removeIngredientFromWarehouse = async (req, res) => {
     try {
@@ -175,5 +186,23 @@ exports.removeIngredientFromWarehouse = async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 };
+
+// Tìm warehouse theo managerID
+exports.getWarehousesByManager = async (req, res) => {
+    try {
+      const { managerId } = req.params;
+  
+      const warehouses = await Warehouse.find({ managerId }).populate('listIngredient.ingredientId');
+  
+      if (!warehouses || warehouses.length === 0) {
+        return res.status(404).json({ message: "No warehouses found for this manager" });
+      }
+  
+      res.status(200).json({ warehouses });
+    } catch (error) {
+      console.error("Error getting warehouses by manager:", error);
+      res.status(500).json({ message: "Server error", error });
+    }
+  };
 
 
