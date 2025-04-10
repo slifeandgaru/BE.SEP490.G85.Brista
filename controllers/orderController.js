@@ -16,10 +16,11 @@ exports.getOrders = async (req, res) => {
 exports.getOrderByPhone = async (req, res) => {
     try {
         const phone = req.params.phone;
-        const orders = await Order.find({ phone }).populate("userId vatId voucherId product.productId");
+        const orders = await Order.find({ phone, status: "unpaid" })
+            .populate("userId vatId voucherId product.productId");
 
         if (orders.length === 0) {
-            return res.status(404).json({ message: "Không tìm thấy đơn hàng nào với số điện thoại này." });
+            return res.status(200).json({ message: "Không tìm thấy đơn hàng nào chưa thanh toán với số điện thoại này." });
         }
 
         res.status(200).json(orders);
@@ -32,22 +33,18 @@ exports.getOrderByPhone = async (req, res) => {
 // Tạo đơn hàng mới
 exports.createOrder = async (req, res) => {
     try {
-<<<<<<< HEAD
         const { userId, userName, product, phone } = req.body;
-=======
-        const { userId, customerId, product } = req.body;
->>>>>>> e90fae2ef12447826747aeba5f86030e04dd7d69
 
         // 🔍 Tìm đơn hàng của khách hàng có status là "unpaid"
         let existingOrder = await Order.findOne({
-            $or: [{ userId }, {customerId}],
+            $or: [{ userId }, { phone }],
             status: "unpaid"
         });
 
         if (existingOrder) {
             // ✅ Nếu đơn hàng đã tồn tại, cập nhật danh sách sản phẩm
             product.forEach((newProduct) => {
-                const existingProduct = existingOrder.product.find(p => 
+                const existingProduct = existingOrder.product.find(p =>
                     p.productId.toString() === newProduct.productId
                 );
 
@@ -65,7 +62,6 @@ exports.createOrder = async (req, res) => {
             existingOrder = new Order({
                 phone,
                 userId,
-                customerId,
                 product,
                 status: "unpaid",
                 orderDate: new Date()

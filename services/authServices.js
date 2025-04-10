@@ -3,10 +3,11 @@ const { User } = require("../models/user")
 
 exports.checkEmailAndPassword = async (req, res) => {
     try {
-        const user = await User.findOne({email: req.body.email})
-        // console.log(user)
-        if(!user) return {error: 'wrong email'};
+        const user = await User.findOne({phone: req.body.phone})
+        if(!user) return {error: 'wrong phone'};
         const check = await user.verifyPassword(req.body.password);
+        
+        console.log(check)
         if(!check) return {error: 'wrong password'};
 
         // const cart = await Cart.findOne({userId: user._id});
