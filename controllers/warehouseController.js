@@ -38,7 +38,7 @@ exports.getAllWarehouses = async (req, res) => {
 // Lấy kho theo ID
 exports.getWarehouseById = async (req, res) => {
     try {
-        const warehouse = await Warehouse.findById(req.params.id);
+        const warehouse = await Warehouse.findById(req.params.id).populate("listIngredient.ingredientId");
         if (!warehouse) {
             return res.status(404).json({ message: 'Warehouse not found' });
         }

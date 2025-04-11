@@ -13,6 +13,9 @@ const productRoute = require("../routes/productRoute")
 const vatRoute = require("../routes/vatRoute")
 const voucherRoute = require("../routes/voucherRoute")
 const orderRoute = require("../routes/orderRoute")
+const requestRoute = require("../routes/requestRoutes")
+const transferRoute = require("../routes/transferRoutes")
+const auditRoute = require("../routes/auditRoutes")
 
 router.use('/auth', authRoute);
 
@@ -27,5 +30,8 @@ router.use('/product', productRoute);
 router.use('/vat', vatRoute);
 router.use('/voucher', voucherRoute);
 router.use('/order', orderRoute);
+router.use('/requests', requestRoute);
+router.use('/transfers', transferRoute);
+router.use('/audits', auditRoute);
 
 module.exports = router;
