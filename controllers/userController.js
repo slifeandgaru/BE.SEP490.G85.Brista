@@ -4,12 +4,50 @@ const fs = require('fs');
 
 exports.getAllUser = async (req, res) => {
     try {
-        const listUser = await User.find().select(['-password', '-token']);
-        res.status(200).json({listUser});
+        const currentRole = req.user?.role; // middleware decode token phải gán req.user
+        const search = req.query.search || '';
+        const searchField = req.query.searchField || 'fullname';
+        const filterRole = req.query.role || 'all';
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const filter = {};
+
+        // Phân quyền xem user
+        if (currentRole === 'manager') {
+            filter.role = { $in: ['employee', 'guest'] };
+        }
+
+        // Lọc theo role nếu có chỉ định
+        if (filterRole !== 'all') {
+            filter.role = filter.role
+                ? { $in: [filter.role, filterRole] } // combine manager filter + role
+                : filterRole;
+        }
+
+        // Tìm kiếm theo trường
+        if (search) {
+            filter[searchField] = { $regex: search, $options: 'i' };
+        }
+
+        const listUser = await User.find(filter)
+            .select('-password -token')
+            .skip(skip)
+            .limit(limit);
+
+        const total = await User.countDocuments(filter);
+
+        res.status(200).json({
+            listUser,
+            total,
+            page,
+            limit,
+        });
     } catch (error) {
-        res.status(500).json({message: 'server error', error});
+        res.status(500).json({ message: 'server error', error });
     }
-}
+};
 
 exports.createNewUser = async (req, res) => {
     try {
@@ -43,7 +81,6 @@ exports.createNewUser = async (req, res) => {
 exports.UserOrder = async (req, res) => {
     try {
         const { phone, email } = req.body;
-        console.log('avd')
         // Kiểm tra xem phone đã tồn tại chưa
         const existingPhone = await User.findOne({ phone });
         if (existingPhone) {

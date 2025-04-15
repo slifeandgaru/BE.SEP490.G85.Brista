@@ -12,7 +12,8 @@ const TransferLogSchema = new mongoose.Schema({
     items: [
         {
             ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: 'ingredients' },
-            quantityDelivered: { type: Number, required: true },
+            quantityRequested: { type: Number, required: true },
+            unit: {type: String }
         },
     ],
 }, { timestamps: true });

@@ -1,5 +1,6 @@
 const Product = require('../models/product');
 const Ingredient = require('../models/ingredient');
+const Warehouse = require("../models/warehouse");
 
 // [POST] Tạo sản phẩm mới
 exports.createProduct = async (req, res) => {
@@ -15,25 +16,96 @@ exports.createProduct = async (req, res) => {
 // [GET] Lấy danh sách sản phẩm (có phân trang)
 exports.getAllProducts = async (req, res) => {
     try {
-        let { page, limit } = req.query;
-        page = parseInt(page) || 1;
-        limit = parseInt(limit) || 10;
-        const skip = (page - 1) * limit;
-
-        const products = await Product.find()
-            // .populate('categoryId', 'categoryName')
-            // .populate('listIngredient.ingredientId', 'ingredientName unit')
-            // .populate('feedback.userId', 'username')
-            // .populate('coupon.couponId', 'couponCode discount')
-            .skip(skip)
-            .limit(limit);
-
-        const total = await Product.countDocuments();
-        res.status(200).json({ total, page, limit, products });
+      let { page, limit, warehouseId } = req.query;
+      page = parseInt(page) || 1;
+      limit = parseInt(limit) || 10;
+      const skip = (page - 1) * limit;
+  
+      const products = await Product.find()
+        .populate("listIngredient.ingredientId") // Phải populate để lấy baseUnit + conversionRate
+        .skip(skip)
+        .limit(limit);
+  
+      const total = await Product.countDocuments();
+  
+      if (warehouseId) {
+        const warehouse = await Warehouse.findById(warehouseId);
+        if (!warehouse) {
+          return res.status(404).json({ message: "Warehouse not found" });
+        }
+  
+        // Tạo map nguyên liệu trong kho
+        const ingredientMap = {};
+        warehouse.listIngredient.forEach((item) => {
+          ingredientMap[item.ingredientId.toString()] = {
+            quantity: item.quantity,
+            unit: item.unit,
+          };
+        });
+  
+        // Kiểm tra từng sản phẩm
+        for (const product of products) {
+          let isAvailable = true;
+  
+          for (const ing of product.listIngredient) {
+            if (!ing.ingredientId) {
+              console.log(`❌ Ingredient bị thiếu thông tin trong product: ${product.productName}`);
+              isAvailable = false;
+              break;
+            }
+  
+            const ingId = ing.ingredientId._id.toString();
+            const requiredQty = ing.quantity;
+  
+            const ingInfo = ing.ingredientId;
+            const baseUnit = ingInfo.baseUnit;
+            const conversionRates = ingInfo.conversionRate || [];
+  
+            const warehouseItem = ingredientMap[ingId];
+  
+            // ❌ Nguyên liệu không tồn tại trong kho
+            if (!warehouseItem) {
+              console.log(`⚠️ Nguyên liệu ${ingInfo.ingredientName} không có trong kho`);
+              isAvailable = false;
+              break;
+            }
+  
+            let warehouseQtyInBase = warehouseItem.quantity;
+  
+            // ✅ Nếu đơn vị trong kho khác baseUnit thì chuyển đổi
+            if (warehouseItem.unit !== baseUnit) {
+              const convert = conversionRates.find(
+                (c) => c.unit === warehouseItem.unit
+              );
+  
+              if (!convert) {
+                console.log(`⚠️ Không tìm thấy conversionRate cho đơn vị ${warehouseItem.unit} của ${ingInfo.ingredientName}`);
+                isAvailable = false;
+                break;
+              }
+  
+              warehouseQtyInBase *= convert.rate; // chuyển về baseUnit
+            }
+  
+            // ❌ Nếu không đủ nguyên liệu
+            if (warehouseQtyInBase < requiredQty) {
+              console.log(`⚠️ Không đủ ${ingInfo.ingredientName} cho sản phẩm ${product.productName}`);
+              isAvailable = false;
+              break;
+            }
+          }
+  
+          product._doc.isAvailable = isAvailable; // Gắn flag cho FE dùng
+        }
+      }
+  
+      res.status(200).json({ total, page, limit, products });
+  
     } catch (error) {
-        res.status(500).json({ message: 'Error retrieving products', error });
+      console.log("🔥 Lỗi khi load sản phẩm:", error);
+      res.status(500).json({ message: "Error retrieving products", error });
     }
-};
+  };
 
 // [GET] Lấy sản phẩm theo ID
 exports.getProductById = async (req, res) => {

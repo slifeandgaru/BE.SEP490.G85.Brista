@@ -14,7 +14,8 @@ const OrderSchema = mongoose.Schema({
     status: {type: String, enum: ['paid', 'unpaid', 'doing', 'done', 'served'], default: 'unpaid'},
     orderDate: Date,
     vatId: {type: mongoose.Schema.Types.ObjectId, ref: 'VATs'},
-    voucherId: {type: mongoose.Schema.Types.ObjectId, ref: 'Vouchers'}
+    voucherId: {type: mongoose.Schema.Types.ObjectId, ref: 'Vouchers'},
+    warehouseId: { type: mongoose.Schema.Types.ObjectId, ref: "warehouses" }
 },{collection: 'orders', timestamps: true});
 
 const Order = mongoose.model('orders', OrderSchema);

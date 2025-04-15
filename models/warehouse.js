@@ -14,12 +14,13 @@ const WarehouseSchema = new mongoose.Schema(
             {
                 ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: "ingredients" },
                 quantity: { type: Number, required: true }, // Tổng số lượng theo đơn vị gốc
+                unit: { type: String, trim: true }
             },
         ],
     },
     { collection: "warehouses", timestamps: true }
 );
 
-const Warehouse = mongoose.model("Warehouse", WarehouseSchema);
+const Warehouse = mongoose.model("warehouses", WarehouseSchema);
 
 module.exports = Warehouse;

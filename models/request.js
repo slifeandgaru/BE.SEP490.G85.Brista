@@ -23,7 +23,7 @@ const RequestSchema = new mongoose.Schema({
         {
             ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: 'ingredients' },
             quantityRequested: { type: Number, required: true },
-            quantityDelivered: { type: Number, default: 0 },
+            unit: { type: String },
         },
     ],
 }, { timestamps: true });

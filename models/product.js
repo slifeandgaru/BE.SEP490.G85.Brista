@@ -7,7 +7,8 @@ const ProductSchema = new mongoose.Schema({
     listIngredient: [
         {
             ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: 'ingredients' },
-            quantity: { type: Number, required: true }
+            quantity: { type: Number, required: true },
+            unit: {type: String}
         }
     ],
     price: { type: Number, required: true },

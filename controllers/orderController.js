@@ -2,13 +2,39 @@ const mongoose = require('mongoose');
 const Order = require("../models/order");
 const Product = require("../models/product");
 
+const Warehouse = require("../models/warehouse");
+const Ingredient = require("../models/ingredient");
+
 // Lấy danh sách tất cả đơn hàng
+// exports.getOrders = async (req, res) => {
+//     try {
+//         const orders = await Order.find().populate("userId vatId voucherId product.productId");
+//         res.status(200).json(orders);
+//     } catch (error) {
+//         res.status(500).json({ message: error.message });
+//     }
+// };
+
 exports.getOrders = async (req, res) => {
     try {
-        const orders = await Order.find().populate("userId vatId voucherId product.productId");
-        res.status(200).json(orders);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+        const { search = "", status, page = 1, limit = 5 } = req.query;
+
+        const query = {};
+        if (status) query.status = status;
+        if (search) query.phone = { $regex: search, $options: "i" };
+
+        const orders = await Order.find(query)
+            .populate("product.productId")
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(Number(limit));
+
+        const total = await Order.countDocuments(query);
+
+        res.status(200).json({ orders, total });
+    } catch (err) {
+        console.error("getAllOrders error:", err);
+        res.status(500).json({ message: "Server error" });
     }
 };
 
@@ -33,7 +59,7 @@ exports.getOrderByPhone = async (req, res) => {
 // Tạo đơn hàng mới
 exports.createOrder = async (req, res) => {
     try {
-        const { userId, userName, product, phone } = req.body;
+        const { userId, userName, product, phone, address, table, warehouseId } = req.body;
 
         // 🔍 Tìm đơn hàng của khách hàng có status là "unpaid"
         let existingOrder = await Order.findOne({
@@ -64,7 +90,10 @@ exports.createOrder = async (req, res) => {
                 userId,
                 product,
                 status: "unpaid",
-                orderDate: new Date()
+                orderDate: new Date(),
+                table,
+                address,
+                warehouseId
             });
         }
 
@@ -95,6 +124,82 @@ exports.updateOrder = async (req, res) => {
         res.status(200).json(updatedOrder);
     } catch (error) {
         res.status(400).json({ message: error.message });
+    }
+};
+
+exports.updateOrderPaid = async (req, res) => {
+    try {
+        const prevOrder = await Order.findById(req.params.id);
+
+        const updatedOrder = await Order.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true }
+        ).populate({
+            path: "product.productId",
+            populate: { path: "listIngredient.ingredientId" }
+        });
+
+        if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
+
+        // Trừ nguyên liệu khi chuyển sang trạng thái paid
+        if (req.body.status === "paid" && prevOrder.status !== "paid") {
+            const warehouse = await Warehouse.findById(updatedOrder.warehouseId);
+            if (!warehouse) return res.status(404).json({ message: "Warehouse not found" });
+
+            for (const item of updatedOrder.product) {
+                const product = item.productId;
+                const quantityOrdered = item.quantity;
+
+                for (const ing of product.listIngredient) {
+                    const ingredientId = ing.ingredientId._id;
+                    const baseQtyNeeded = ing.quantity * quantityOrdered;
+                    const baseUnit = ing.ingredientId.baseUnit;
+
+                    const index = warehouse.listIngredient.findIndex(
+                        (ingItem) => ingItem.ingredientId.toString() === ingredientId.toString()
+                    );
+
+                    if (index === -1) {
+                        return res.status(400).json({ message: `Nguyên liệu không tồn tại trong kho: ${ing.ingredientId.ingredientName}` });
+                    }
+
+                    const stockItem = warehouse.listIngredient[index];
+                    const warehouseUnit = stockItem.unit;
+                    let currentQtyInBase = stockItem.quantity;
+
+                    if (warehouseUnit !== baseUnit) {
+                        const conv = ing.ingredientId.conversionRate.find(c => c.unit === warehouseUnit);
+                        if (!conv) {
+                            return res.status(400).json({ message: `Không tìm thấy conversionRate cho ${warehouseUnit} -> ${baseUnit}` });
+                        }
+                        currentQtyInBase = stockItem.quantity * conv.rate;
+                    }
+
+                    if (currentQtyInBase < baseQtyNeeded) {
+                        return res.status(400).json({
+                            message: `Không đủ nguyên liệu "${ing.ingredientId.ingredientName}" trong kho "${warehouse.warehouseName}"`
+                        });
+                    }
+
+                    // Trừ nguyên liệu theo đơn vị trong kho
+                    let qtyToSubtractInWarehouseUnit = baseQtyNeeded;
+
+                    if (warehouseUnit !== baseUnit) {
+                        const conv = ing.ingredientId.conversionRate.find(c => c.unit === warehouseUnit);
+                        qtyToSubtractInWarehouseUnit = baseQtyNeeded / conv.rate;
+                    }
+
+                    warehouse.listIngredient[index].quantity -= qtyToSubtractInWarehouseUnit;
+                }
+            }
+
+            await warehouse.save();
+        }
+
+        return res.status(200).json(updatedOrder);
+    } catch (error) {
+        return res.status(400).json({ message: error.message });
     }
 };
 
