@@ -197,6 +197,11 @@ exports.updateOrderPaid = async (req, res) => {
             await warehouse.save();
         }
 
+        // ⚡ Emit socket cho client biết đơn hàng đã cập nhật (trạng thái mới, trừ kho xong)
+        if (global._io) {
+            global._io.emit("update_order_paid", updatedOrder);
+        }
+
         return res.status(200).json(updatedOrder);
     } catch (error) {
         return res.status(400).json({ message: error.message });
