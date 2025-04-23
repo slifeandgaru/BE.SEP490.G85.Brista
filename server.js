@@ -8,6 +8,10 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app); // 👈 tạo HTTP server từ Express
 
+// Import routes
+const ingredientRoutes = require("./routes/ingredientRoutes");
+app.use("/api/ingredients", ingredientRoutes);
+
 // ⚡ Tạo Socket.IO instance
 const io = new Server(server, {
     cors: {
@@ -15,6 +19,7 @@ const io = new Server(server, {
         credentials: true
     }
 });
+
 
 // 🔌 Gắn global để sử dụng ở mọi nơi
 global._io = io;
