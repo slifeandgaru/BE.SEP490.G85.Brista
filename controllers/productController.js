@@ -22,6 +22,7 @@ exports.getAllProducts = async (req, res) => {
       const skip = (page - 1) * limit;
   
       const products = await Product.find()
+        .populate("categoryId")
         .populate("listIngredient.ingredientId") // Phải populate để lấy baseUnit + conversionRate
         .skip(skip)
         .limit(limit);

@@ -8,7 +8,7 @@ router.post('/create-new-user', createNewUser);
 router.get('/get-one-user/:userId', getOneUser);
 router.post('/user-order', UserOrder);
 // router.patch('/update-user-info/:userId', checkLogin, upload.single('avatar'), updateUserInfo);
-// router.patch('/change-password/:userId', checkLogin, changePassword);
+router.patch('/change-password/:userId', changePassword);
 // router.patch('/update-address', checkLogin, updateAddress);
 
 module.exports = router;

@@ -16,6 +16,7 @@ const orderRoute = require("../routes/orderRoute")
 const requestRoute = require("../routes/requestRoutes")
 const transferRoute = require("../routes/transferRoutes")
 const auditRoute = require("../routes/auditRoutes")
+const kitchenTaskRoute = require('../routes/kitchenTaskRoute');
 
 router.use('/auth', authRoute);
 
@@ -33,5 +34,6 @@ router.use('/order', orderRoute);
 router.use('/requests', requestRoute);
 router.use('/transfers', transferRoute);
 router.use('/audits', auditRoute);
+router.use('/kitchenTask', kitchenTaskRoute);
 
 module.exports = router;
