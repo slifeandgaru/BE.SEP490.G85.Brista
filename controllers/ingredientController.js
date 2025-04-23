@@ -1,4 +1,4 @@
-const { Ingredient } = require('../models/Ingredient');
+const Ingredient = require('../models/ingredient');
 
 // Get all ingredients with pagination
 exports.getAllIngredients = async (req, res) => {
@@ -38,17 +38,52 @@ exports.getIngredientById = async (req, res) => {
 // Create a new ingredient
 exports.createIngredient = async (req, res) => {
     try {
-        const { batchCode } = req.body;
+        console.log("File received:", req.file);
+
+        // Lấy dữ liệu từ request body
+        const { ingredientName, baseUnit, ingredientCode, expiration, conversionRate } = req.body;
+        
+        // Kiểm tra nếu rate là mảng hợp lệ
+        // const validRate = Array.isArray(conversionRate) && conversionRate.every(r => r.unit && r.conversionRate);
+
+        // if (!validRate) {
+        //     return res.status(400).json({ message: "Invalid rate format" });
+        // }
+
+        // Tạo batchCode từ ingredientCode + ngày tháng hiện tại
+        const currentDate = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+        const batchCode = `${ingredientCode}-${currentDate}`;
+
+        // Kiểm tra xem batchCode đã tồn tại chưa
         const existingIngredient = await Ingredient.findOne({ batchCode });
         if (existingIngredient) {
-            return res.status(400).json({ message: 'Batch code already exists' });
+            return res.status(400).json({ message: "Batch code already exists" });
         }
-        
-        const newIngredient = new Ingredient(req.body);
+
+        // if (conversionRate) {
+        //     conversionRate = JSON.parse(conversionRate);
+        // }
+
+        // Lưu đường dẫn ảnh (nếu có)
+        let thump = req.file?.path || "https://cdn-icons-png.flaticon.com/512/1261/1261163.png";
+
+        // Tạo mới nguyên liệu
+        const newIngredient = new Ingredient({
+            ingredientName,
+            baseUnit,
+            ingredientCode,
+            batchCode,
+            expiration,
+            conversionRate,
+            thump,
+        });
+
         await newIngredient.save();
-        res.status(201).json({ message: 'Ingredient created successfully', ingredient: newIngredient });
+
+        res.status(201).json({ message: "Ingredient created successfully", ingredient: newIngredient });
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error("Error creating ingredient:", error);
+        res.status(500).json({ message: "Server error", error });
     }
 };
 
@@ -77,3 +112,29 @@ exports.deleteIngredient = async (req, res) => {
         res.status(500).json({ message: 'Server error', error });
     }
 };
+
+// Add a new unit conversion to an ingredient
+exports.addUnitToIngredient = async (req, res) => {
+    try {
+        const { unit, value } = req.body;
+
+        if (!unit || !value) {
+            return res.status(400).json({ message: 'unit and value are required' });
+        }
+
+        const updatedIngredient = await Ingredient.findByIdAndUpdate(
+            req.params.id,
+            { $push: { rate: { unit, value } } },
+            { new: true }
+        );
+
+        if (!updatedIngredient) {
+            return res.status(404).json({ message: 'Ingredient not found' });
+        }
+
+        res.status(200).json({ message: 'Unit added successfully', ingredient: updatedIngredient });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error });
+    }
+};
+

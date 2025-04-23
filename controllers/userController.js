@@ -4,21 +4,108 @@ const fs = require('fs');
 
 exports.getAllUser = async (req, res) => {
     try {
-        const listUser = await User.find().select(['-password', '-token']);
-        res.status(200).json({listUser});
+        const currentRole = req.user?.role; // middleware decode token phải gán req.user
+        const search = req.query.search || '';
+        const searchField = req.query.searchField || 'fullname';
+        const filterRole = req.query.role || 'all';
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const filter = {};
+
+        // Phân quyền xem user
+        if (currentRole === 'manager') {
+            filter.role = { $in: ['employee', 'guest'] };
+        }
+
+        // Lọc theo role nếu có chỉ định
+        if (filterRole !== 'all') {
+            filter.role = filter.role
+                ? { $in: [filter.role, filterRole] } // combine manager filter + role
+                : filterRole;
+        }
+
+        // Tìm kiếm theo trường
+        if (search) {
+            filter[searchField] = { $regex: search, $options: 'i' };
+        }
+
+        const listUser = await User.find(filter)
+            .select('-password -token')
+            .skip(skip)
+            .limit(limit);
+
+        const total = await User.countDocuments(filter);
+
+        res.status(200).json({
+            listUser,
+            total,
+            page,
+            limit,
+        });
     } catch (error) {
-        res.status(500).json({message: 'server error', error});
+        res.status(500).json({ message: 'server error', error });
     }
-}
+};
 
 exports.createNewUser = async (req, res) => {
     try {
-        const newUser = await User.create({...req.body})
-        res.status(200).json({newUser});
+        const { phone, email } = req.body;
+
+        // Kiểm tra xem phone đã tồn tại chưa
+        const existingPhone = await User.findOne({ phone });
+        if (existingPhone) {
+            return res.status(400).json({ message: "Số điện thoại đã tồn tại" });
+        }
+
+        // Nếu email có trong request, kiểm tra xem email đã tồn tại chưa
+        if (email) {
+            const existingEmail = await User.findOne({ email });
+            if (existingEmail) {
+                return res.status(400).json({ message: "Email đã tồn tại" });
+            }
+        }
+
+        // Nếu không có trùng, tạo user mới
+        const newUser = await User.create(req.body);
+
+        res.status(201).json({ newUser });
     } catch (error) {
-        res.status(500).json({message: 'server error', error}); 
+        console.error("Error creating user:", error);
+        res.status(500).json({ message: "Server error", error });
     }
-}
+};
+
+
+exports.UserOrder = async (req, res) => {
+    try {
+        const { phone, email } = req.body;
+        // Kiểm tra xem phone đã tồn tại chưa
+        const existingPhone = await User.findOne({ phone });
+        if (existingPhone) {
+            return res.status(200).json({ message: " Người dùng cũ " });
+        }
+
+        // Nếu email có trong request, kiểm tra xem email đã tồn tại chưa
+        // if (email) {
+        //     const existingEmail = await User.findOne({ email });
+        //     if (existingEmail) {
+        //         return res.status(400).json({ message: "Email đã tồn tại" });
+        //     }
+        // }
+
+        // Nếu không có trùng, tạo user mới
+        const newUser = await User.create(req.body);
+
+        res.status(201).json({ newUser });
+    } catch (error) {
+        console.error("Error creating user:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+};
+
+
 
 exports.getOneUser = async (req, res) => {
     try {

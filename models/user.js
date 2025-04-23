@@ -3,25 +3,25 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const UserSchema  = mongoose.Schema({
-    username: {type: String},
-    password: {type: String},
+    password: String,
     email: {
         type: String, 
+        sparse: true,
         unique: true,
         trim: true,
         maxlength: [100, 'Your email is too long'],
-        required: [true, 'Please choose an email'],
+        // required: [true, 'Please choose an email'],
         dropDups: true,
         match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
     },
     avatar: {type: String, default: 'https://st3.depositphotos.com/1767687/16607/v/450/depositphotos_166074422-stock-illustration-default-avatar-profile-icon-grey.jpg'},
     phone: {type: String, unique: true, dropDups: true},
     address: [],
-    role: {type: String, enum: ['admin', 'employee', 'guest', 'manager', 'warehouse'], default: 'guest'},
+    role: {type: String, enum: ['admin', 'employee', 'manager', 'warehouse', 'guest', 'brista'], default: 'guest'},
     token: String,
     fullname: String,
     dateOfBirth: Date,
-    sex: {type: String, enum: ['male', 'female', 'other']},
+    sex: {type: String, enum: ['male', 'female', 'other'], default: 'other'},
     nationality: {type: String, default: 'Viet Nam'},
     active: {type: Boolean, default: true}
 }, {collection: 'users', timestamps: true});
