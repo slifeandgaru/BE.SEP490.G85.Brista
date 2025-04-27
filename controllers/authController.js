@@ -3,6 +3,7 @@ const { User } = require("../models/user");
 const { checkEmailAndPassword } = require("../services/authServices");
 const sendOTP = require("../services/twilioService")
 const { saveOTP, verifyOTP } = require("../services/otpStore")
+const bcrypt = require('bcrypt');  // Đảm bảo sử dụng bcrypt để mã hóa mật khẩu
 
 exports.createNewUser = async (req, res) => {
     try {
@@ -23,7 +24,7 @@ exports.createNewUser = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
     try {
-        // console.log(18, req.body);
+        console.log(18, req.body);
         const user = await checkEmailAndPassword(req, res);
         if (user.error) return res.status(400).json({ message: user.error });
 
@@ -42,21 +43,6 @@ exports.getMyInfo = async (req, res) => {
         res.status(500).json({ message: 'server error', error });
     }
 }
-
-// exports.loginToShop = async (req, res) => {
-//     try {
-//         // console.log(40, req.body);
-//         const user = await checkEmailAndPassword(req, res);
-//         if(user.error) return res.status(400).json({message: user.error});
-
-//         if(!user.user.shop) return res.status(400).json({message: `you don't have a shop yet, please create a shop first`});
-
-//         const token = user.user.createToken();
-//         res.status(200).json({message: 'login success', token});
-//     } catch (error) {
-//         res.status(500).json({message: 'server error', error});
-//     }
-// }
 
 exports.adminLogin = async (req, res) => {
     try {
@@ -90,59 +76,59 @@ exports.adminLogin = async (req, res) => {
 //     }
 // }
 
+// Lưu OTP vào DB với thời gian hết hạn
+const otpExpirationTime = Date.now() + 5 * 60 * 1000;  // 5 phút
+
 exports.forgotPassword = async (req, res) => {
     const { phone } = req.body;
-    console.log(phone);
     if (!phone) return res.status(400).json({ message: 'Vui lòng nhập số điện thoại' });
-  
+
     const user = await User.findOne({ phone });
     if (!user) return res.status(404).json({ message: 'Số điện thoại không tồn tại' });
-  
+
     const otp = Math.floor(100000 + Math.random() * 900000); // random 6 chữ số
-    
+
     try {
-      // Lưu OTP vào trường verifyOTP của user
-      user.verifyOTP = otp.toString();  // Lưu OTP dưới dạng chuỗi
-      await user.save();  // Lưu thay đổi vào database
+        user.verifyOTP = otp.toString();  // Lưu OTP dưới dạng chuỗi
+        user.otpExpiration = otpExpirationTime;  // Lưu thời gian hết hạn OTP
+        await user.save();
 
-    //   const normalizePhone = (phone) => {
-    //     if (phone.startsWith('0')) {
-    //       return '+84' + phone.slice(1);
-    //     }
-    //     return phone;
-    //   }
-  
-    //   // Gửi OTP qua SMS/ZNS
-    //   await sendOTP(normalizePhone(phone), otp); 
-      res.json({ message: 'Mã OTP đã được gửi' });
+        // Gửi OTP qua SMS/ZNS (Nếu bạn có dịch vụ gửi OTP)
+        await sendOTP(phone, otp);
+
+        res.json({ message: 'Mã OTP đã được gửi' });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: 'Không gửi được OTP' });
+        console.error(err);
+        res.status(500).json({ message: 'Không gửi được OTP' });
     }
-  };
+};
 
-  exports.resetPasswordWithOTP = async (req, res) => {
+exports.resetPasswordWithOTP = async (req, res) => {
     const { phone, otp, newPassword } = req.body;
-  
+
     if (!phone || !otp || !newPassword) {
-      return res.status(400).json({ message: 'Thiếu thông tin' });
+        return res.status(400).json({ message: 'Thiếu thông tin' });
     }
-  
+
     const user = await User.findOne({ phone });
     if (!user) return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-  
+
     // Kiểm tra OTP
     if (user.verifyOTP !== otp) {
-      return res.status(401).json({ message: 'OTP không hợp lệ hoặc đã hết hạn' });
+        return res.status(401).json({ message: 'OTP không hợp lệ' });
     }
-  
+
+    if (user.otpExpiration < Date.now()) {
+        return res.status(401).json({ message: 'OTP đã hết hạn' });
+    }
+
     // Mã OTP hợp lệ, tiến hành đổi mật khẩu
-    // const bcrypt = require('bcrypt');
-    // const salt = await bcrypt.genSalt(10);
-    // user.password = await bcrypt.hash(newPassword, salt);
-    console.log(143, user._id)
-    user.verifyOTP = ""
-    await User.updateOne({_id: user._id}, {password: newPassword})
-  
+    const salt = await bcrypt.genSalt(10);  // Tạo salt cho việc mã hóa mật khẩu
+    user.password = await bcrypt.hash(newPassword, salt);  // Mã hóa mật khẩu mới
+
+    user.verifyOTP = "";  // Xóa OTP sau khi đã sử dụng
+
+    await user.save();  // Lưu người dùng sau khi thay đổi mật khẩu
+
     res.json({ message: 'Đổi mật khẩu thành công' });
-  };
+};

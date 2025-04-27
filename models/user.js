@@ -25,7 +25,8 @@ const UserSchema = mongoose.Schema({
     sex: { type: String, enum: ['male', 'female', 'other'], default: 'other' },
     nationality: { type: String, default: 'Viet Nam' },
     active: { type: Boolean, default: true },
-    verifyOTP: { type: String }
+    verifyOTP: { type: String },
+    otpExpiration: { type: String } 
 }, { collection: 'users', timestamps: true });
 
 UserSchema.pre('updateOne', async function (next) {

@@ -15,12 +15,6 @@ exports.checkLogin = async (req, res, next) => {
     }
 }
 
-// exports.checkShop = async (req, res, next) => {
-//     if(!req.user.shop) return res.status(400).json({message: 'please login to shop page'});
-
-//     next();
-// }
-
 exports.checkAdmin = async (req, res, next) => {
     if(req.user.role !== 'admin') return res.status(400).json({message: 'only admin accepted'});
 

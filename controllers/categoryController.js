@@ -1,25 +1,4 @@
 const { Category } = require("../models/category");
-const multer  = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, './public/uploads/category');
-    },
-    filename: function (req, file, cb) {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname);
-      cb(null, file.fieldname + '-' + uniqueSuffix);
-    }
-})
-
-exports.upload = multer({ storage: storage },{
-    fileFilter: function(req, file, cb) {
-        if(file.mimetype.includes('image')) return cb(null, true);
-        
-        cb(new Error('only accept image'));
-    }
-})
 
 exports.adminCreateCategory = async (req, res) => {
     try {

@@ -8,6 +8,6 @@ router.get('/get-product-by-id/:productId', getProductById);
 router.post('/create-new-product', checkLogin, createProduct);
 router.patch('/update-product/:customerId', checkLogin, updateProduct);
 router.delete('/delete-product-by-id', checkAdmin, deleteProduct);
-router.delete('/add-ingredient-to-product', checkLogin, addIngredientToProduct);
+// router.delete('/add-ingredient-to-product', checkLogin, addIngredientToProduct);
 
 module.exports = router;

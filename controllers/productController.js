@@ -2,7 +2,7 @@ const Product = require('../models/product');
 const Ingredient = require('../models/ingredient');
 const Warehouse = require("../models/warehouse");
 
-// [POST] Tạo sản phẩm mới
+// Tạo sản phẩm mới
 exports.createProduct = async (req, res) => {
     try {
         const newProduct = new Product(req.body);
@@ -13,7 +13,7 @@ exports.createProduct = async (req, res) => {
     }
 };
 
-// [GET] Lấy danh sách sản phẩm (có phân trang)
+// Lấy danh sách sản phẩm (có phân trang)
 exports.getAllProducts = async (req, res) => {
     try {
       let { page, limit, warehouseId } = req.query;
@@ -108,7 +108,7 @@ exports.getAllProducts = async (req, res) => {
     }
   };
 
-// [GET] Lấy sản phẩm theo ID
+// Lấy sản phẩm theo ID
 exports.getProductById = async (req, res) => {
     try {
         const product = await Product.findById(req.params.productId)
@@ -127,7 +127,7 @@ exports.getProductById = async (req, res) => {
     }
 };
 
-// [PATCH] Cập nhật sản phẩm
+// Cập nhật sản phẩm
 exports.updateProduct = async (req, res) => {
     try {
         const updatedProduct = await Product.findByIdAndUpdate(
@@ -146,7 +146,7 @@ exports.updateProduct = async (req, res) => {
     }
 };
 
-// [DELETE] Xóa sản phẩm
+// Xóa sản phẩm
 exports.deleteProduct = async (req, res) => {
     try {
         const deletedProduct = await Product.findByIdAndDelete(req.params.productId);
@@ -160,7 +160,7 @@ exports.deleteProduct = async (req, res) => {
     }
 };
 
-// [POST] thêm nguyên liệu vào trong sản phẩm
+//thêm nguyên liệu vào trong sản phẩm
 exports.addIngredientToProduct = async (req, res) => {
     try {
         const { productId, ingredientId, quantity } = req.body;
