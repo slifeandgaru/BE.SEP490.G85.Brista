@@ -8,9 +8,18 @@ const ProductSchema = new mongoose.Schema({
         {
             ingredientId: { type: mongoose.Schema.Types.ObjectId, ref: 'ingredients' },
             quantity: { type: Number, required: true },
-            unit: {type: String}
+            unit: { type: String }
         }
     ],
+    availableOptions: {
+        Size: { type: [String], default: ['S', 'M', 'L'] },
+        Ice: { type: [String], default: ['None', 'Less', 'Nomal', 'More'] },
+        Suger: { type: [String], default: ['0%', '50%', '70%', '100%', '125%', '150%'] }
+    },
+    defaultOptions: {
+        type: Map,
+        of: String
+    },
     price: { type: Number, required: true },
     totalStorage: { type: Number, required: true },
     expiration: Date,

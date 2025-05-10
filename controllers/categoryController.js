@@ -55,7 +55,7 @@ exports.findCategoryRegex = async (req, res) => {
 exports.changeCategoryName = async (req, res) => {
     try {
         const category = await Category.findByIdAndUpdate({_id: req.body.categoryId}, {categoryName: req.body.categoryName}, {new: true, runValidators: true});
-        res.status(200).json({category});
+        res.status(200).json({message: 'Change name Category successfully', category});
     } catch (error) {
         if(error.code === 11000) return res.status(400).json({message: 'this categoryName already in use'});
         res.status(500).json({message: 'server error', error});

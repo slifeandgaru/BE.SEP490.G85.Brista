@@ -18,7 +18,7 @@ const UserSchema = mongoose.Schema({
     avatar: { type: String, default: 'https://st3.depositphotos.com/1767687/16607/v/450/depositphotos_166074422-stock-illustration-default-avatar-profile-icon-grey.jpg' },
     phone: { type: String, unique: true, dropDups: true },
     address: [],
-    role: { type: String, enum: ['admin', 'employee', 'manager', 'warehouse', 'guest', 'brista'], default: 'guest' },
+    role: { type: String, enum: ['admin', 'cashier', 'waiter', 'brista', 'taker_order', 'manager', 'warehouse', 'guest' ], default: 'guest' },
     token: String,
     fullname: String,
     dateOfBirth: Date,
@@ -26,7 +26,8 @@ const UserSchema = mongoose.Schema({
     nationality: { type: String, default: 'Viet Nam' },
     active: { type: Boolean, default: true },
     verifyOTP: { type: String },
-    otpExpiration: { type: String } 
+    otpExpiration: { type: String } ,
+    warehouseId: { type: mongoose.Schema.Types.ObjectId, ref: 'warehouses' },
 }, { collection: 'users', timestamps: true });
 
 UserSchema.pre('updateOne', async function (next) {
@@ -60,7 +61,8 @@ UserSchema.methods.createToken = function () {
         fullname: this.fullname,
         dateOfBirth: this.dateOfBirth,
         sex: this.sex,
-        nationality: this.nationality
+        nationality: this.nationality,
+        warehouseId: this.warehouseId
     }
     this.token = jwt.sign(payload, process.env.JWT, { expiresIn: process.env.JWT_EXPIRE_IN });
     this.save();

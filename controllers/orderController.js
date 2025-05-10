@@ -71,7 +71,8 @@ exports.createOrder = async (req, res) => {
             // ✅ Nếu đơn hàng đã tồn tại, cập nhật danh sách sản phẩm
             product.forEach((newProduct) => {
                 const existingProduct = existingOrder.product.find(p =>
-                    p.productId.toString() === newProduct.productId
+                    p.productId.toString() === newProduct.productId &&
+                    JSON.stringify(p.selectedOptions) === JSON.stringify(newProduct.selectedOptions)
                 );
 
                 if (existingProduct) {
@@ -122,6 +123,10 @@ exports.updateOrder = async (req, res) => {
         const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
         res.status(200).json(updatedOrder);
+
+        if (global._io && updatedOrder.phone) {
+            global._io.to(updatedOrder.phone).emit("update_quantity", updatedOrder);
+        }
     } catch (error) {
         res.status(400).json({ message: error.message });
     }

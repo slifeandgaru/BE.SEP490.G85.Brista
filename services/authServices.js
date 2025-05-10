@@ -1,7 +1,7 @@
 // const { Cart } = require("../models/cart");
 const { User } = require("../models/user")
 
-exports.checkEmailAndPassword = async (req, res) => {
+exports.checkPhoneAndPassword = async (req, res) => {
     try {
         const user = await User.findOne({phone: req.body.phone})
         if(!user) return {error: 'wrong phone'};

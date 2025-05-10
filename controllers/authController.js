@@ -1,6 +1,6 @@
 // const { Cart } = require("../models/cart");
 const { User } = require("../models/user");
-const { checkEmailAndPassword } = require("../services/authServices");
+const { checkPhoneAndPassword } = require("../services/authServices");
 const sendOTP = require("../services/twilioService")
 const { saveOTP, verifyOTP } = require("../services/otpStore")
 const bcrypt = require('bcrypt');  // Đảm bảo sử dụng bcrypt để mã hóa mật khẩu
@@ -24,11 +24,19 @@ exports.createNewUser = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
     try {
-        console.log(18, req.body);
-        const user = await checkEmailAndPassword(req, res);
-        if (user.error) return res.status(400).json({ message: user.error });
+        const userResult = await checkPhoneAndPassword(req, res);
+        if (userResult.error) return res.status(400).json({ message: userResult.error });
 
-        const token = user.user.createToken();
+        // Lấy thông tin user và populate warehouseId
+        const user = await User.findById(userResult.user._id)
+            .populate({
+                path: 'warehouseId',
+                select: 'warehouseName warehouseType address'
+            });
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const token = user.createToken();
         res.status(200).json({ message: 'login success', token });
     } catch (error) {
         res.status(500).json({ message: 'server error', error });

@@ -17,6 +17,7 @@ const WarehouseSchema = new mongoose.Schema(
                 unit: { type: String, trim: true }
             },
         ],
+        parentWarehouse: { type: mongoose.Schema.Types.ObjectId, ref: 'warehouses' }
     },
     { collection: "warehouses", timestamps: true }
 );

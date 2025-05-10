@@ -100,7 +100,7 @@ exports.getAllProducts = async (req, res) => {
         }
       }
   
-      res.status(200).json({ total, page, limit, products });
+      res.status(200).json({ message: "Get all product success", total, page, limit, products });
   
     } catch (error) {
       console.log("🔥 Lỗi khi load sản phẩm:", error);

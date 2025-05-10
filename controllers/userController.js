@@ -12,6 +12,8 @@ exports.getAllUser = async (req, res) => {
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
+        const warehouseId = req.query.warehouseId;
+
         const filter = {};
 
         // Phân quyền xem user
@@ -24,6 +26,11 @@ exports.getAllUser = async (req, res) => {
             filter.role = filter.role
                 ? { $in: [filter.role, filterRole] } // combine manager filter + role
                 : filterRole;
+        }
+
+        // Lọc theo warehouseId 👇
+        if (warehouseId) {
+            filter.warehouseId = warehouseId;
         }
 
         // Tìm kiếm theo trường
@@ -69,7 +76,7 @@ exports.createNewUser = async (req, res) => {
 
         // Nếu không có trùng, tạo user mới
         const newUser = await User.create(req.body);
-
+        console.log(newUser)
         res.status(201).json({ newUser });
     } catch (error) {
         console.error("Error creating user:", error);
@@ -86,14 +93,6 @@ exports.UserOrder = async (req, res) => {
         if (existingPhone) {
             return res.status(200).json({ message: " Người dùng cũ " });
         }
-
-        // Nếu email có trong request, kiểm tra xem email đã tồn tại chưa
-        // if (email) {
-        //     const existingEmail = await User.findOne({ email });
-        //     if (existingEmail) {
-        //         return res.status(400).json({ message: "Email đã tồn tại" });
-        //     }
-        // }
 
         // Nếu không có trùng, tạo user mới
         const newUser = await User.create(req.body);
