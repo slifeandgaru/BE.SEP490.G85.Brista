@@ -21,10 +21,19 @@ const kitchenTaskSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  selectedOptions: {
+    type: Map,
+    of: String,
+    default: {}
+  },
   status: {
     type: String,
     enum: ['pending', 'done', 'in_progress'],
     default: 'pending'
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   },
   updatedAt: {
     type: Date,

@@ -12,13 +12,21 @@ exports.generateKitchenTasks = async (req, res) => {
       for (const item of order.product) {
         const productId = item.productId._id.toString();
 
-        if (taskMap.has(productId)) {
-          taskMap.get(productId).totalQuantity += item.quantity;
+        // Biến selectedOptions Map thành chuỗi JSON có thứ tự key ổn định
+        const options = item.selectedOptions
+          ? JSON.stringify(Object.fromEntries([...item.selectedOptions.entries()].sort()))
+          : '{}';
+
+        const taskKey = `${productId}_${options}`;
+
+        if (taskMap.has(taskKey)) {
+          taskMap.get(taskKey).totalQuantity += item.quantity;
         } else {
-          taskMap.set(productId, {
+          taskMap.set(taskKey, {
             productId,
             productName: item.productId.productName,
             totalQuantity: item.quantity,
+            selectedOptions: JSON.parse(options), // Lưu lại để hiển thị trong bếp
           });
         }
       }
@@ -27,7 +35,11 @@ exports.generateKitchenTasks = async (req, res) => {
     const results = [];
 
     for (const task of taskMap.values()) {
-      const existingTask = await KitchenTask.findOne({ productId: task.productId });
+      // Tìm theo productId + selectedOptions
+      const existingTask = await KitchenTask.findOne({
+        productId: task.productId,
+        selectedOptions: task.selectedOptions
+      });
 
       if (existingTask) {
         const delta = task.totalQuantity - existingTask.totalQuantity;
@@ -38,7 +50,6 @@ exports.generateKitchenTasks = async (req, res) => {
           await existingTask.save();
           results.push(existingTask);
         } else {
-          // Không cần update nếu không tăng
           results.push(existingTask);
         }
       } else {

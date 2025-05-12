@@ -198,3 +198,24 @@ exports.addIngredientToProduct = async (req, res) => {
         return res.status(500).json({ message: "Lỗi server.", error: error.message });
     }
 };
+
+exports.getAllProductsByCategoryId = async (req, res) => {
+  try {
+    console.log("abc")
+      const { categoryId } = req.params;
+
+      if (!categoryId) {
+          return res.status(400).json({ message: 'Category ID is required' });
+      }
+
+      const products = await Product.find({ categoryId })
+          // .populate('categoryId') // nếu muốn thông tin category
+          // .populate('listIngredient.ingredientId') // nếu muốn thông tin nguyên liệu
+          // .populate('feedback.userId') // nếu muốn user feedback
+          // .populate('coupon.couponId'); // nếu muốn thông tin coupon
+
+      res.status(200).json(products);
+  } catch (err) {
+      res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+};
