@@ -58,14 +58,17 @@ exports.getOrderByPhone = async (req, res) => {
 
 // Tạo đơn hàng mới
 exports.createOrder = async (req, res) => {
+
     try {
         const { userId, userName, product, phone, address, table, warehouseId } = req.body;
 
         // 🔍 Tìm đơn hàng của khách hàng có status là "unpaid"
+        console.log(66, phone);
         let existingOrder = await Order.findOne({
-            $or: [{ userId }, { phone }],
+            phone,
             status: "unpaid"
         });
+        console.log(66, existingOrder);
 
         if (existingOrder) {
             // ✅ Nếu đơn hàng đã tồn tại, cập nhật danh sách sản phẩm
@@ -113,6 +116,7 @@ exports.createOrder = async (req, res) => {
         res.status(201).json(savedOrder);
 
     } catch (error) {
+        console.error("❌ Error in createOrder:", error);
         res.status(400).json({ message: error.message });
     }
 };
@@ -241,5 +245,39 @@ exports.getOrdersByCustomerId = async (req, res) => {
     } catch (error) {
         console.error("Error fetching orders:", error);
         res.status(500).json({ message: "Server error" });
+    }
+};
+
+// DELETE /api/order/remove-product
+exports.removeProductFromOrder = async (req, res) => {
+    try {
+        const { phone, productItemId } = req.body; // productItemId là _id của từng item trong mảng product
+
+        const updatedOrder = await Order.findOneAndUpdate(
+            { phone, status: "unpaid" },
+            { $pull: { product: { _id: productItemId } } },
+            { new: true }
+        );
+
+        console.log(updatedOrder)
+
+        if (!updatedOrder) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // 👉 Cập nhật lại tổng tiền (sau khi đã remove)
+        const productIds = updatedOrder.product.map(p => p.productId);
+        const productsInDB = await Product.find({ _id: { $in: productIds } });
+
+        updatedOrder.total = updatedOrder.product.reduce((total, p) => {
+            const productInfo = productsInDB.find(prod => prod._id.toString() === p.productId.toString());
+            return total + (productInfo ? productInfo.price * p.quantity : 0);
+        }, 0);
+
+        await updatedOrder.save();
+
+        res.json({ message: "Product removed", order: updatedOrder });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
     }
 };
