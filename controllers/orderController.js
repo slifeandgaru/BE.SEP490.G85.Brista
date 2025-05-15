@@ -4,6 +4,8 @@ const Product = require("../models/product");
 
 const Warehouse = require("../models/warehouse");
 const Ingredient = require("../models/ingredient");
+const { client } = require("../services/paypalClient")
+const paypal = require("@paypal/checkout-server-sdk");
 
 // Lấy danh sách tất cả đơn hàng
 // exports.getOrders = async (req, res) => {
@@ -281,3 +283,51 @@ exports.removeProductFromOrder = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
+
+exports.demoPaypal = async (req, res) => {
+    const { amount } = req.body;
+
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer("return=representation");
+    request.requestBody({
+        intent: "CAPTURE",
+        purchase_units: [
+            {
+                amount: {
+                    currency_code: "USD",
+                    value: amount,
+                },
+            },
+        ],
+    });
+
+    try {
+        const response = await client().execute(request);
+        res.json({ id: response.result.id, links: response.result.links });
+    } catch (err) {
+        console.error("PayPal create order error:", err);
+        res.status(500).json({ error: err.message });
+    }
+
+    // const request = new checkoutNodeJssdk.orders.OrdersCreateRequest();
+    // request.prefer("return=representation");
+    // request.requestBody({
+    //     intent: "CAPTURE",
+    //     purchase_units: [{
+    //         amount: { currency_code: "USD", value: amount }
+    //     }],
+    //     application_context: {
+    //         return_url: "http://localhost:3000/payment-success",
+    //         cancel_url: "http://localhost:3000/payment-cancel"
+    //     }
+    // });
+
+    // try {
+    //     const order = await client().execute(request);
+    //     const approvalUrl = order.result.links.find(link => link.rel === "approve").href;
+    //     res.json({ approvalUrl });
+    // } catch (err) {
+    //     console.error(err);
+    //     res.status(500).json({ error: "Không tạo được order" });
+    // }
+}

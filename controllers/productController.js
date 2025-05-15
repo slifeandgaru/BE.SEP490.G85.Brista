@@ -219,3 +219,63 @@ exports.getAllProductsByCategoryId = async (req, res) => {
       res.status(500).json({ message: 'Server Error', error: err.message });
   }
 };
+
+const calculateProductStorage = async (product, warehouseIngredients, Ingredient) => {
+    const requiredIngredients = product.listIngredient;
+    const productCountList = [];
+
+    for (const required of requiredIngredients) {
+        const { ingredientId, quantity: requiredQty, unit: requiredUnit } = required;
+
+        const warehouseEntry = warehouseIngredients.find(entry =>
+            entry.ingredientId.toString() === ingredientId.toString()
+        );
+
+        if (!warehouseEntry) return 0;
+
+        let availableQty = warehouseEntry.quantity;
+        const availableUnit = warehouseEntry.unit;
+
+        if (requiredUnit !== availableUnit) {
+            const ingredient = await Ingredient.findById(ingredientId);
+            const conversion = ingredient.conversionRate.find(rate => rate.unit === availableUnit);
+            if (!conversion || !conversion.rate) return 0;
+            availableQty *= conversion.rate;
+        }
+
+        const possibleCount = Math.floor(availableQty / requiredQty);
+        productCountList.push(possibleCount);
+    }
+
+    return Math.min(...productCountList);
+};
+
+exports.getAllProductsWithStorage = async (req, res) => {
+    try {
+        const { warehouseId } = req.query;
+        if (!warehouseId) {
+            return res.status(400).json({ success: false, message: 'warehouseId is required' });
+        }
+
+        const warehouse = await Warehouse.findById(warehouseId);
+        if (!warehouse) {
+            return res.status(404).json({ success: false, message: 'Warehouse not found' });
+        }
+
+        const products = await Product.find().populate('categoryId');
+
+        const productWithStorage = await Promise.all(products.map(async (product) => {
+            const totalStorage = await calculateProductStorage(product, warehouse.listIngredient, Ingredient);
+            return {
+                ...product.toObject(),
+                totalStorage
+            };
+        }));
+
+        return res.json({ success: true, data: productWithStorage });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+};
+

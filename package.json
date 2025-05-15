@@ -11,6 +11,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@paypal/checkout-server-sdk": "^1.0.3",
     "bcrypt": "^5.1.1",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
@@ -28,9 +29,9 @@
     "chai": "^5.2.0",
     "chai-http": "^4.3.0",
     "mocha": "^11.1.0",
+    "nodemon": "^3.1.9",
     "sinon": "^7.5.0",
     "sinon-mongoose": "^2.3.0",
-    "nodemon": "^3.1.9",
     "socket.io": "^4.8.1",
     "twilio": "^5.5.2"
   }

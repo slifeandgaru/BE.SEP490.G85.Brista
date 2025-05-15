@@ -1,4 +1,4 @@
-const { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct, addIngredientToProduct, getAllProductsByCategoryId } = require('../controllers/productController');
+const { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct, addIngredientToProduct, getAllProductsByCategoryId, getAllProductsWithStorage } = require('../controllers/productController');
 const { checkLogin, checkAdmin } = require("../middlewares/auth");
 const router = require('express').Router();
 
@@ -10,5 +10,6 @@ router.patch('/update-product/:customerId', checkLogin, updateProduct);
 router.delete('/delete-product-by-id', checkAdmin, deleteProduct);
 router.get('/get-products-by-category/:categoryId', getAllProductsByCategoryId);
 // router.delete('/add-ingredient-to-product', checkLogin, addIngredientToProduct);
+router.get('/get-all-products-storage', getAllProductsWithStorage);
 
 module.exports = router;
