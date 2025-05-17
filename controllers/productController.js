@@ -114,8 +114,8 @@ exports.getProductById = async (req, res) => {
         const product = await Product.findById(req.params.productId)
             .populate('categoryId', 'categoryName')
             .populate('listIngredient.ingredientId', 'ingredientName unit')
-            .populate('feedback.userId', 'username')
-            .populate('coupon.couponId', 'couponCode discount');
+            // .populate('feedback.userId', 'username')
+            // .populate('coupon.couponId', 'couponCode discount');
 
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
@@ -201,7 +201,6 @@ exports.addIngredientToProduct = async (req, res) => {
 
 exports.getAllProductsByCategoryId = async (req, res) => {
   try {
-    console.log("abc")
       const { categoryId } = req.params;
 
       if (!categoryId) {
