@@ -58,6 +58,24 @@ exports.getOrderByPhone = async (req, res) => {
     }
 };
 
+// Lấy đơn hàng đã thanh toán theo bàn
+exports.getOrderPaidByTable = async (req, res) => {
+    try {
+        const table = req.params.table;
+        const orders = await Order.find({ table, status: "paid" })
+            .populate("userId vatId voucherId product.productId");
+
+        if (orders.length === 0) {
+            return res.status(200).json({ message: "Bàn đang trống." });
+        }
+
+        res.status(200).json(orders);
+    } catch (error) {
+        // console.error("Error finding order by phone:", error);
+        res.status(500).json({ message: "Server error", error });
+    }
+};
+
 // Tạo đơn hàng mới
 exports.createOrder = async (req, res) => {
 
@@ -331,3 +349,59 @@ exports.demoPaypal = async (req, res) => {
     //     res.status(500).json({ error: "Không tạo được order" });
     // }
 }
+
+exports.updateServedByProductItemId = async (req, res) => {
+    const { phone, updates } = req.body;
+
+    try {
+        const orders = await Order.find({ phone });
+
+        if (!orders.length) {
+            return res.status(404).json({ message: 'Không tìm thấy đơn hàng với số điện thoại này.' });
+        }
+
+        let overServedItems = []; // lưu danh sách sản phẩm vượt quá
+
+        for (const order of orders) {
+            let updated = false;
+
+            for (const product of order.product) {
+                const match = updates.find(u => u.productItemId === product._id.toString());
+
+                if (match) {
+                    const newServed = product.served + match.served;
+
+                    if (newServed > product.quantity) {
+                        overServedItems.push({
+                            productItemId: product._id,
+                            productId: product.productId,
+                            message: 'Số lượng phục vụ vượt quá số lượng đã đặt.',
+                            served: product.served,
+                            quantity: product.quantity,
+                            remaining: product.quantity - product.served,
+                        });
+                    } else {
+                        product.served = newServed;
+                        updated = true;
+                    }
+                }
+            }
+
+            if (updated) {
+                await order.save();
+            }
+        }
+
+        if (overServedItems.length > 0) {
+            return res.status(400).json({
+                message: 'Một số sản phẩm vượt quá số lượng cho phép.',
+                overServedItems,
+            });
+        }
+
+        res.json({ message: 'Cập nhật served thành công.' });
+    } catch (error) {
+        console.error('Lỗi khi cập nhật served:', error);
+        res.status(500).json({ message: 'Lỗi server khi cập nhật served.' });
+    }
+};

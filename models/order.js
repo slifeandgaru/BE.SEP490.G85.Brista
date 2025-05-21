@@ -9,7 +9,8 @@ const OrderSchema = mongoose.Schema({
         selectedOptions: {
             type: Map,
             of: String // ví dụ: { Size: 'M', Ice: 'None', Sugar: '100%' }
-        }
+        },
+        served: Number
     }],
     total: Number,
     phone: String,
