@@ -351,7 +351,7 @@ exports.demoPaypal = async (req, res) => {
 }
 
 exports.updateServedByProductItemId = async (req, res) => {
-    const { phone, updates } = req.body;
+    const { phone, updates, orderId } = req.body;
 
     try {
         const orders = await Order.find({ phone });
@@ -369,8 +369,15 @@ exports.updateServedByProductItemId = async (req, res) => {
                 const match = updates.find(u => u.productItemId === product._id.toString());
 
                 if (match) {
+                    // Nếu served chưa được khởi tạo, thì gán = 0
+                    if (typeof product.served !== 'number') {
+                        product.served = 0;
+                    }
                     const newServed = product.served + match.served;
 
+                    if(newServed === product.quantity){
+                        const updateStatus = await Order.findByIdAndUpdate(orderId, {status: 'served'})
+                    }
                     if (newServed > product.quantity) {
                         overServedItems.push({
                             productItemId: product._id,

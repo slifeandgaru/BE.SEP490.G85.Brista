@@ -13,6 +13,7 @@ const ProductSchema = new mongoose.Schema({
     ],
     availableOptions: {
         Size: { type: [String], default: ['S', 'M', 'L'] },
+        // Giả định giá Size S là "tiêu chuẩn", Size M = 120% Size S, Size L = 150% Size S
         Ice: { type: [String], default: ['None', 'Less', 'Nomal', 'More'] },
         Suger: { type: [String], default: ['0%', '50%', '70%', '100%', '125%', '150%'] }
     },

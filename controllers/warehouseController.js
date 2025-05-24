@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Warehouse  = require('../models/warehouse');
+const Warehouse = require('../models/warehouse');
 const Ingredient = require('../models/ingredient');
 
 // Lấy danh sách kho với phân trang
@@ -190,19 +190,19 @@ exports.removeIngredientFromWarehouse = async (req, res) => {
 // Tìm warehouse theo managerID
 exports.getWarehousesByManager = async (req, res) => {
     try {
-      const { managerId } = req.params;
-  
-      const warehouses = await Warehouse.find({ managerId }).populate('listIngredient.ingredientId');
-  
-      if (!warehouses || warehouses.length === 0) {
-        return res.status(404).json({ message: "No warehouses found for this manager" });
-      }
-  
-      res.status(200).json({ warehouses });
+        const { managerId } = req.params;
+
+        const warehouses = await Warehouse.find({ managerId }).populate('listIngredient.ingredientId');
+
+        if (!warehouses || warehouses.length === 0) {
+            return res.status(404).json({ message: "No warehouses found for this manager" });
+        }
+
+        res.status(200).json({ warehouses });
     } catch (error) {
-      console.error("Error getting warehouses by manager:", error);
-      res.status(500).json({ message: "Server error", error });
+        console.error("Error getting warehouses by manager:", error);
+        res.status(500).json({ message: "Server error", error });
     }
-  };
+};
 
 
