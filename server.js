@@ -11,11 +11,17 @@ const server = http.createServer(app); // 👈 tạo HTTP server từ Express
 // Import routes
 // const ingredientRoutes = require("./routes/ingredientRoutes");
 // app.use("/api/ingredients", ingredientRoutes);
-
+const allowedOrigins = ["http://localhost:3030", "http://qrista.store:3030"];
 // ⚡ Tạo Socket.IO instance
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3030", // 👈 Frontend của bạn
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS (socket.io)"));
+            }
+        },
         credentials: true
     }
 });
@@ -34,8 +40,15 @@ io.on('connection', (socket) => {
 });
 
 // 🧱 Middleware
+
 app.use(cors({
-    origin: "http://localhost:3030",
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true
 }));
 app.use(express.json());
