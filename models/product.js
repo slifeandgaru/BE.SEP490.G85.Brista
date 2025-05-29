@@ -33,7 +33,8 @@ const ProductSchema = new mongoose.Schema({
     ],
     coupon: [{
         couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'coupons' }
-    }]
+    }],
+    status: Boolean
 }, { collection: 'products', timestamps: true });
 
 const Product = mongoose.model('products', ProductSchema);

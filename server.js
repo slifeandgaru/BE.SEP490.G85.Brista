@@ -35,7 +35,7 @@ io.on('connection', (socket) => {
 
 // 🧱 Middleware
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: "http://localhost:3030",
     credentials: true
 }));
 app.use(express.json());

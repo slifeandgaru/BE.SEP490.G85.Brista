@@ -16,97 +16,97 @@ exports.createProduct = async (req, res) => {
 // Lấy danh sách sản phẩm (có phân trang)
 exports.getAllProducts = async (req, res) => {
     try {
-      let { page, limit, warehouseId } = req.query;
-      page = parseInt(page) || 1;
-      limit = parseInt(limit) || 10;
-      const skip = (page - 1) * limit;
-  
-      const products = await Product.find()
-        .populate("categoryId")
-        .populate("listIngredient.ingredientId") // Phải populate để lấy baseUnit + conversionRate
-        .skip(skip)
-        .limit(limit);
-  
-      const total = await Product.countDocuments();
-  
-      if (warehouseId) {
-        const warehouse = await Warehouse.findById(warehouseId);
-        if (!warehouse) {
-          return res.status(404).json({ message: "Warehouse not found" });
+        let { page, limit, warehouseId } = req.query;
+        page = parseInt(page) || 1;
+        limit = parseInt(limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const products = await Product.find()
+            .populate("categoryId")
+            .populate("listIngredient.ingredientId") // Phải populate để lấy baseUnit + conversionRate
+            .skip(skip)
+            .limit(limit);
+
+        const total = await Product.countDocuments();
+
+        if (warehouseId) {
+            const warehouse = await Warehouse.findById(warehouseId);
+            if (!warehouse) {
+                return res.status(404).json({ message: "Warehouse not found" });
+            }
+
+            // Tạo map nguyên liệu trong kho
+            const ingredientMap = {};
+            warehouse.listIngredient.forEach((item) => {
+                ingredientMap[item.ingredientId.toString()] = {
+                    quantity: item.quantity,
+                    unit: item.unit,
+                };
+            });
+
+            // Kiểm tra từng sản phẩm
+            for (const product of products) {
+                let isAvailable = true;
+
+                for (const ing of product.listIngredient) {
+                    if (!ing.ingredientId) {
+                        console.log(`❌ Ingredient bị thiếu thông tin trong product: ${product.productName}`);
+                        isAvailable = false;
+                        break;
+                    }
+
+                    const ingId = ing.ingredientId._id.toString();
+                    const requiredQty = ing.quantity;
+
+                    const ingInfo = ing.ingredientId;
+                    const baseUnit = ingInfo.baseUnit;
+                    const conversionRates = ingInfo.conversionRate || [];
+
+                    const warehouseItem = ingredientMap[ingId];
+
+                    // ❌ Nguyên liệu không tồn tại trong kho
+                    if (!warehouseItem) {
+                        console.log(`⚠️ Nguyên liệu ${ingInfo.ingredientName} không có trong kho`);
+                        isAvailable = false;
+                        break;
+                    }
+
+                    let warehouseQtyInBase = warehouseItem.quantity;
+
+                    // ✅ Nếu đơn vị trong kho khác baseUnit thì chuyển đổi
+                    if (warehouseItem.unit !== baseUnit) {
+                        const convert = conversionRates.find(
+                            (c) => c.unit === warehouseItem.unit
+                        );
+
+                        if (!convert) {
+                            console.log(`⚠️ Không tìm thấy conversionRate cho đơn vị ${warehouseItem.unit} của ${ingInfo.ingredientName}`);
+                            isAvailable = false;
+                            break;
+                        }
+
+                        warehouseQtyInBase *= convert.rate; // chuyển về baseUnit
+                    }
+
+                    // ❌ Nếu không đủ nguyên liệu
+                    if (warehouseQtyInBase < requiredQty) {
+                        console.log(`⚠️ Không đủ ${ingInfo.ingredientName} cho sản phẩm ${product.productName}`);
+                        isAvailable = false;
+                        break;
+                    }
+                }
+
+                product._doc.isAvailable = isAvailable; // Gắn flag cho FE dùng
+            }
         }
-  
-        // Tạo map nguyên liệu trong kho
-        const ingredientMap = {};
-        warehouse.listIngredient.forEach((item) => {
-          ingredientMap[item.ingredientId.toString()] = {
-            quantity: item.quantity,
-            unit: item.unit,
-          };
-        });
-  
-        // Kiểm tra từng sản phẩm
-        for (const product of products) {
-          let isAvailable = true;
-  
-          for (const ing of product.listIngredient) {
-            if (!ing.ingredientId) {
-              console.log(`❌ Ingredient bị thiếu thông tin trong product: ${product.productName}`);
-              isAvailable = false;
-              break;
-            }
-  
-            const ingId = ing.ingredientId._id.toString();
-            const requiredQty = ing.quantity;
-  
-            const ingInfo = ing.ingredientId;
-            const baseUnit = ingInfo.baseUnit;
-            const conversionRates = ingInfo.conversionRate || [];
-  
-            const warehouseItem = ingredientMap[ingId];
-  
-            // ❌ Nguyên liệu không tồn tại trong kho
-            if (!warehouseItem) {
-              console.log(`⚠️ Nguyên liệu ${ingInfo.ingredientName} không có trong kho`);
-              isAvailable = false;
-              break;
-            }
-  
-            let warehouseQtyInBase = warehouseItem.quantity;
-  
-            // ✅ Nếu đơn vị trong kho khác baseUnit thì chuyển đổi
-            if (warehouseItem.unit !== baseUnit) {
-              const convert = conversionRates.find(
-                (c) => c.unit === warehouseItem.unit
-              );
-  
-              if (!convert) {
-                console.log(`⚠️ Không tìm thấy conversionRate cho đơn vị ${warehouseItem.unit} của ${ingInfo.ingredientName}`);
-                isAvailable = false;
-                break;
-              }
-  
-              warehouseQtyInBase *= convert.rate; // chuyển về baseUnit
-            }
-  
-            // ❌ Nếu không đủ nguyên liệu
-            if (warehouseQtyInBase < requiredQty) {
-              console.log(`⚠️ Không đủ ${ingInfo.ingredientName} cho sản phẩm ${product.productName}`);
-              isAvailable = false;
-              break;
-            }
-          }
-  
-          product._doc.isAvailable = isAvailable; // Gắn flag cho FE dùng
-        }
-      }
-  
-      res.status(200).json({ message: "Get all product success", total, page, limit, products });
-  
+
+        res.status(200).json({ message: "Get all product success", total, page, limit, products });
+
     } catch (error) {
-      console.log("🔥 Lỗi khi load sản phẩm:", error);
-      res.status(500).json({ message: "Error retrieving products", error });
+        console.log("🔥 Lỗi khi load sản phẩm:", error);
+        res.status(500).json({ message: "Error retrieving products", error });
     }
-  };
+};
 
 // Lấy sản phẩm theo ID
 exports.getProductById = async (req, res) => {
@@ -114,8 +114,8 @@ exports.getProductById = async (req, res) => {
         const product = await Product.findById(req.params.productId)
             .populate('categoryId', 'categoryName')
             .populate('listIngredient.ingredientId', 'ingredientName unit')
-            // .populate('feedback.userId', 'username')
-            // .populate('coupon.couponId', 'couponCode discount');
+        // .populate('feedback.userId', 'username')
+        // .populate('coupon.couponId', 'couponCode discount');
 
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
@@ -200,23 +200,23 @@ exports.addIngredientToProduct = async (req, res) => {
 };
 
 exports.getAllProductsByCategoryId = async (req, res) => {
-  try {
-      const { categoryId } = req.params;
+    try {
+        const { categoryId } = req.params;
 
-      if (!categoryId) {
-          return res.status(400).json({ message: 'Category ID is required' });
-      }
+        if (!categoryId) {
+            return res.status(400).json({ message: 'Category ID is required' });
+        }
 
-      const products = await Product.find({ categoryId })
-          // .populate('categoryId') // nếu muốn thông tin category
-          // .populate('listIngredient.ingredientId') // nếu muốn thông tin nguyên liệu
-          // .populate('feedback.userId') // nếu muốn user feedback
-          // .populate('coupon.couponId'); // nếu muốn thông tin coupon
+        const products = await Product.find({ categoryId })
+        // .populate('categoryId') // nếu muốn thông tin category
+        // .populate('listIngredient.ingredientId') // nếu muốn thông tin nguyên liệu
+        // .populate('feedback.userId') // nếu muốn user feedback
+        // .populate('coupon.couponId'); // nếu muốn thông tin coupon
 
-      res.status(200).json(products);
-  } catch (err) {
-      res.status(500).json({ message: 'Server Error', error: err.message });
-  }
+        res.status(200).json(products);
+    } catch (err) {
+        res.status(500).json({ message: 'Server Error', error: err.message });
+    }
 };
 
 const calculateProductStorage = async (product, warehouseIngredients, Ingredient) => {
@@ -224,10 +224,13 @@ const calculateProductStorage = async (product, warehouseIngredients, Ingredient
     const productCountList = [];
 
     for (const required of requiredIngredients) {
-        const { ingredientId, quantity: requiredQty, unit: requiredUnit } = required;
+        const requiredIngredientId =
+            typeof required.ingredientId === 'object' ? required.ingredientId._id : required.ingredientId;
+
+        const { quantity: requiredQty, unit: requiredUnit } = required;
 
         const warehouseEntry = warehouseIngredients.find(entry =>
-            entry.ingredientId.toString() === ingredientId.toString()
+            entry.ingredientId.toString() === requiredIngredientId.toString()
         );
 
         if (!warehouseEntry) return 0;
@@ -236,8 +239,12 @@ const calculateProductStorage = async (product, warehouseIngredients, Ingredient
         const availableUnit = warehouseEntry.unit;
 
         if (requiredUnit !== availableUnit) {
-            const ingredient = await Ingredient.findById(ingredientId);
-            const conversion = ingredient.conversionRate.find(rate => rate.unit === availableUnit);
+            // Dùng populate nếu có sẵn
+            const ingredient = typeof required.ingredientId === 'object'
+                ? required.ingredientId
+                : await Ingredient.findById(requiredIngredientId);
+
+            const conversion = ingredient?.conversionRate?.find(rate => rate.unit === availableUnit);
             if (!conversion || !conversion.rate) return 0;
             availableQty *= conversion.rate;
         }
@@ -251,7 +258,8 @@ const calculateProductStorage = async (product, warehouseIngredients, Ingredient
 
 exports.getAllProductsWithStorage = async (req, res) => {
     try {
-        const { warehouseId } = req.query;
+        const { warehouseId, page = 1, limit = 10 } = req.query;
+
         if (!warehouseId) {
             return res.status(400).json({ success: false, message: 'warehouseId is required' });
         }
@@ -261,7 +269,17 @@ exports.getAllProductsWithStorage = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Warehouse not found' });
         }
 
-        const products = await Product.find().populate('categoryId');
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        // Tổng số lượng sản phẩm để tính tổng số trang
+        const totalProducts = await Product.countDocuments();
+
+        // Lấy sản phẩm có phân trang
+        const products = await Product.find()
+            .skip(skip)
+            .limit(parseInt(limit))
+            .populate('categoryId')
+            .populate('listIngredient.ingredientId');
 
         const productWithStorage = await Promise.all(products.map(async (product) => {
             const totalStorage = await calculateProductStorage(product, warehouse.listIngredient, Ingredient);
@@ -271,7 +289,16 @@ exports.getAllProductsWithStorage = async (req, res) => {
             };
         }));
 
-        return res.json({ success: true, data: productWithStorage });
+        return res.json({
+            success: true,
+            data: productWithStorage,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(totalProducts / limit),
+                totalItems: totalProducts,
+                pageSize: parseInt(limit),
+            }
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Server error' });
