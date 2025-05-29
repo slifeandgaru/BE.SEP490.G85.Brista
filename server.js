@@ -15,7 +15,7 @@ const server = http.createServer(app); // 👈 tạo HTTP server từ Express
 // ⚡ Tạo Socket.IO instance
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173", // 👈 Frontend của bạn
+        origin: "http://localhost:3030", // 👈 Frontend của bạn
         credentials: true
     }
 });

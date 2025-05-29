@@ -25,6 +25,7 @@ exports.createNewUser = async (req, res) => {
 exports.loginUser = async (req, res) => {
     try {
         const userResult = await checkPhoneAndPassword(req, res);
+        console.log(userResult)
         if (userResult.error) return res.status(400).json({ message: userResult.error });
 
         // Lấy thông tin user và populate warehouseId
