@@ -17,7 +17,6 @@ const OrderSchema = mongoose.Schema({
     address: String,
     table: Number,
     status: { type: String, enum: ['paid', 'unpaid', 'doing', 'done', 'served'], default: 'unpaid' },
-    orderDate: Date,
     vatId: { type: mongoose.Schema.Types.ObjectId, ref: 'VATs' },
     voucherId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vouchers' },
     warehouseId: { type: mongoose.Schema.Types.ObjectId, ref: "warehouses" },

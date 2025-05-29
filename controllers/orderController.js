@@ -19,11 +19,21 @@ const paypal = require("@paypal/checkout-server-sdk");
 
 exports.getOrders = async (req, res) => {
     try {
-        const { search = "", status, page = 1, limit = 5 } = req.query;
-
+        const { search = "", status, page = 1, limit = 5, startDate, endDate } = req.query;
+        console.log(startDate + "---" + endDate)
         const query = {};
+
+
         if (status) query.status = status;
         if (search) query.phone = { $regex: search, $options: "i" };
+
+        // 🎯 Lọc theo createdAt nếu có ngày
+        if (startDate && endDate) {
+            query.createdAt = {
+                $gte: new Date(startDate),
+                $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999)) // kết thúc ngày
+            };
+        }
 
         const orders = await Order.find(query)
             .populate("product.productId")
@@ -39,6 +49,7 @@ exports.getOrders = async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 };
+
 
 // Lấy đơn hàng theo ID
 exports.getOrderByPhone = async (req, res) => {
@@ -114,10 +125,9 @@ exports.createOrder = async (req, res) => {
                 userId,
                 product,
                 status: "unpaid",
-                orderDate: new Date(),
                 table,
                 address,
-                warehouseId
+                warehouseId,
             });
         }
 
@@ -125,10 +135,24 @@ exports.createOrder = async (req, res) => {
         const productIds = existingOrder.product.map(p => p.productId);
         const productsInDB = await Product.find({ _id: { $in: productIds } });
 
-        // 🎯 Cập nhật tổng tiền (total = sum(quantity * price))
+        // 🎯 Cập nhật tổng tiền (tính thêm phụ phí Size nếu có)
         existingOrder.total = existingOrder.product.reduce((total, p) => {
             const productInfo = productsInDB.find(prod => prod._id.toString() === p.productId.toString());
-            return total + (productInfo ? productInfo.price * p.quantity : 0);
+            if (!productInfo) return total;
+
+            let price = productInfo.price;
+
+            const size = p.selectedOptions?.get
+                ? p.selectedOptions.get('Size') // nếu là Map
+                : p.selectedOptions?.Size;      // nếu là Object
+
+            if (size === 'M') {
+                price += price * 0.1;
+            } else if (size === 'L') {
+                price += price * 0.2;
+            }
+
+            return total + price * p.quantity;
         }, 0);
 
         // 💾 Lưu lại đơn hàng
@@ -144,17 +168,53 @@ exports.createOrder = async (req, res) => {
 // Cập nhật đơn hàng
 exports.updateOrder = async (req, res) => {
     try {
-        const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        const orderId = req.params.id;
+        const updateData = req.body;
+
+        // Nếu có cập nhật danh sách sản phẩm thì cần tính lại `total`
+        if (updateData.product) {
+            // Lấy danh sách productId từ danh sách mới
+            const productIds = updateData.product.map(p => p.productId);
+            const productsInDB = await Product.find({ _id: { $in: productIds } });
+            // console.log(productsInDB[0]._id.toString())
+
+            // Tính lại tổng tiền
+            updateData.total = updateData.product.reduce((total, p) => {
+                const productInfo = productsInDB.find(prod => prod._id.toString() === p.productId._id.toString());
+                if (!productInfo) return total;
+
+                let price = productInfo.price;
+                const size = p.selectedOptions?.get
+                    ? p.selectedOptions.get('Size') // Nếu là Map
+                    : p.selectedOptions?.Size;     // Nếu là Object
+
+                if (size === 'M') {
+                    price += price * 0.1;
+                } else if (size === 'L') {
+                    price += price * 0.2;
+                }
+
+                return total + price * p.quantity;
+            }, 0);
+        }
+
+        // Cập nhật đơn hàng
+        const updatedOrder = await Order.findByIdAndUpdate(orderId, updateData, { new: true });
         if (!updatedOrder) return res.status(404).json({ message: "Order not found" });
+
         res.status(200).json(updatedOrder);
 
+        // Gửi socket cập nhật nếu có
         if (global._io && updatedOrder.phone) {
             global._io.to(updatedOrder.phone).emit("update_quantity", updatedOrder);
         }
+
     } catch (error) {
+        console.error("❌ Error in updateOrder:", error);
         res.status(400).json({ message: error.message });
     }
 };
+
 
 exports.updateOrderPaid = async (req, res) => {
     try {
@@ -375,8 +435,8 @@ exports.updateServedByProductItemId = async (req, res) => {
                     }
                     const newServed = product.served + match.served;
 
-                    if(newServed === product.quantity){
-                        const updateStatus = await Order.findByIdAndUpdate(orderId, {status: 'served'})
+                    if (newServed === product.quantity) {
+                        const updateStatus = await Order.findByIdAndUpdate(orderId, { status: 'served' })
                     }
                     if (newServed > product.quantity) {
                         overServedItems.push({
