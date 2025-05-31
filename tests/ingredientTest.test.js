@@ -2,7 +2,7 @@ const chai = require("chai");
 const chaiHttp = require("chai-http");
 const sinon = require("sinon");
 const { expect } = chai;
-const { Ingredient } = require("../models/Ingredient");
+const { Ingredient } = require("../models/ingredient");
 const ingredientController = require("../controllers/ingredientController");
 const app = require("../server"); // Import server của bạn
 

@@ -28,7 +28,7 @@
     "chai-http": "^4.3.0",
     "mocha": "^11.1.0",
     "sinon": "^7.5.0",
-    "sinon-mongoose": "^2.3.0"
+    "sinon-mongoose": "^2.3.0",
     "nodemon": "^3.1.9",
     "socket.io": "^4.8.1"
   }

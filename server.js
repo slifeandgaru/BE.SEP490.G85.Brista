@@ -8,9 +8,9 @@ const path = require('path');
 const app = express();
 const server = http.createServer(app); // 👈 tạo HTTP server từ Express
 
-// Import routes
-const ingredientRoutes = require("./routes/ingredientRoutes");
-app.use("/api/ingredients", ingredientRoutes);
+// // Import routes
+// const ingredientRoutes = require("./routes/ingredientRoutes");
+// app.use("/api/ingredients", ingredientRoutes);
 
 // ⚡ Tạo Socket.IO instance
 const io = new Server(server, {
