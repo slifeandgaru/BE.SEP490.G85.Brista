@@ -6,6 +6,7 @@ const Warehouse = require("../models/warehouse");
 const Ingredient = require("../models/ingredient");
 const { client } = require("../services/paypalClient")
 const paypal = require("@paypal/checkout-server-sdk");
+const moment = require('moment');
 
 // Lấy danh sách tất cả đơn hàng
 // exports.getOrders = async (req, res) => {
@@ -472,3 +473,117 @@ exports.updateServedByProductItemId = async (req, res) => {
         res.status(500).json({ message: 'Lỗi server khi cập nhật served.' });
     }
 };
+
+exports.getRevenueStats = async (req, res) => {
+    try {
+        const { type } = req.query;
+        let matchCondition = { status: 'paid' };
+        let groupFormat = '%Y-%m-%d'; // Nhóm theo ngày
+        let startDate, endDate;
+
+        const today = moment().startOf('day');
+
+        switch (type) {
+            case 'today':
+                startDate = today.toDate();
+                endDate = moment(today).endOf('day').toDate();
+                break;
+            case 'yesterday':
+                startDate = moment(today).subtract(1, 'day').startOf('day').toDate();
+                endDate = moment(today).subtract(1, 'day').endOf('day').toDate();
+                break;
+            case 'last7days':
+                startDate = moment(today).subtract(6, 'days').startOf('day').toDate();
+                endDate = moment(today).endOf('day').toDate();
+                break;
+            case 'thisMonth':
+                startDate = moment().startOf('month').toDate();
+                endDate = moment().endOf('month').toDate();
+                break;
+            case 'lastMonth':
+                startDate = moment().subtract(1, 'month').startOf('month').toDate();
+                endDate = moment().subtract(1, 'month').endOf('month').toDate();
+                break;
+            default:
+                return res.status(400).json({ success: false, message: 'Invalid type' });
+        }
+
+        matchCondition.createdAt = { $gte: startDate, $lte: endDate };
+
+        const revenue = await Order.aggregate([
+            { $match: matchCondition },
+            {
+                $group: {
+                    _id: { $dateToString: { format: groupFormat, date: '$createdAt' } },
+                    value: { $sum: '$total' }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        // Format lại để trả ra { name: 'dd/mm', value }:
+        const formatted = revenue.map(item => ({
+            name: moment(item._id, 'YYYY-MM-DD').format('DD/MM'),
+            value: item.value
+        }));
+
+        return res.json({ success: true, data: formatted });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};
+
+exports.getTopProductsOfMonth = async (req, res) => {
+  try {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const topProducts = await Order.aggregate([
+      {
+        $match: {
+          status: 'paid',
+          createdAt: { $gte: startOfMonth, $lte: endOfMonth }
+        }
+      },
+      { $unwind: "$product" },
+      {
+        $lookup: {
+          from: 'products',
+          localField: 'product.productId',
+          foreignField: '_id',
+          as: 'productInfo'
+        }
+      },
+      { $unwind: "$productInfo" },
+      {
+        $group: {
+          _id: "$product.productId",
+          name: { $first: "$productInfo.productName" },
+          totalQuantity: { $sum: "$product.quantity" },
+          totalRevenue: {
+            $sum: {
+              $multiply: ["$product.quantity", "$productInfo.price"]
+            }
+          }
+        }
+      },
+      { $sort: { totalRevenue: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          _id: 0,
+          name: 1,
+          totalRevenue: 1
+        }
+      }
+    ]);
+
+    res.status(200).json({ success: true, data: topProducts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+

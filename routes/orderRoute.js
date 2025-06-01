@@ -10,7 +10,9 @@ const {
     removeProductFromOrder,
     demoPaypal,
     getOrderPaidByTable,
-    updateServedByProductItemId
+    updateServedByProductItemId,
+    getRevenueStats,
+    getTopProductsOfMonth
 } = require("../controllers/orderController");
 const { checkLogin, checkAdmin } = require("../middlewares/auth");
 
@@ -24,5 +26,7 @@ router.put("/update-order/:id", updateOrder);
 router.put("/update-order-paid/:id", updateOrderPaid);
 router.delete("/delete-order/:id", checkLogin, deleteOrder);
 router.delete("/remove-product-from-order", removeProductFromOrder);
+router.get("/getRevenue", getRevenueStats);
+router.get("/getTopProducts", getTopProductsOfMonth);
 
 module.exports = router;
